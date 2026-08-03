@@ -1,0 +1,6 @@
+eval_command: pytest tests/eval/ -v
+baseline: main
+ai_paths:
+  - prompts/
+  - src/agents/
+  - evals/
