@@ -46,11 +46,21 @@ def test_no_match():
     assert _matches_any("src/main.py", ["prompts/", "agents/"]) is False
 
 
-def test_returns_empty_on_git_failure():
+def test_returns_none_when_git_diff_fails():
+    """A failed git diff (e.g. shallow clone missing the baseline) must be
+    distinguishable from a successful diff that found zero AI files changed —
+    otherwise verify() silently reports SAFE TO MERGE with no real basis."""
     class FailResult:
         returncode = 1
         stdout = ""
 
     with patch("vouqis_verify.core.diff.subprocess.run", return_value=FailResult()):
         result = detect_ai_changes(["prompts/"], "main")
+    assert result is None
+
+
+def test_returns_list_not_none_on_successful_empty_diff():
+    with _mock_diff([]):
+        result = detect_ai_changes(["prompts/"], "main")
     assert result == []
+    assert result is not None

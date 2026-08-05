@@ -16,7 +16,7 @@ jobs:
           fetch-depth: 0     # full history needed for git diff against base branch
 
       - name: Verify AI changes
-        uses: Sasisundar2211/Vouqis-Verify/packages/verify@main
+        uses: Sasisundar2211/VouqisVerify/packages/verify@main
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           # config-path: vouqis.yml   # default; override if yours lives elsewhere

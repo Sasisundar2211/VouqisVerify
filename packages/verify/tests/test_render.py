@@ -156,6 +156,44 @@ def test_no_project_name_plain_header():
     assert "## Vouqis Verify\n" in md
 
 
+# ── diff detection failure (git diff itself failed, not "no changes") ────────
+
+def test_diff_failed_is_not_safe_to_merge():
+    md = build_report(Config(), [], _result(True), diff_failed=True).as_markdown()
+    assert "SAFE TO MERGE" not in md
+    assert "MERGE WITH WARNING" in md
+
+
+def test_diff_failed_confidence_is_medium():
+    report = build_report(Config(), [], _result(True), diff_failed=True)
+    assert report.confidence == "Medium"
+
+
+def test_diff_failed_explains_why():
+    md = build_report(Config(), [], _result(True), diff_failed=True).as_markdown()
+    assert "could not" in md.lower() or "failed" in md.lower()
+
+
+def test_diff_failed_shown_in_what_changed():
+    md = build_report(Config(), [], _result(True), diff_failed=True).as_markdown()
+    assert "⚠️" in md
+
+
+def test_diff_failed_still_block_merge_on_eval_failure():
+    md = build_report(Config(), [], _result(False), diff_failed=True).as_markdown()
+    assert "BLOCK MERGE" in md
+
+
+def test_json_diff_failed_key():
+    data = json.loads(build_report(Config(), [], _result(True), diff_failed=True).as_json())
+    assert data["diff_failed"] is True
+
+
+def test_json_diff_failed_defaults_false():
+    data = json.loads(build_report(Config(), [], _result(True)).as_json())
+    assert data["diff_failed"] is False
+
+
 # ── JSON output (FR-010) ──────────────────────────────────────────────────────
 
 def test_json_is_valid():

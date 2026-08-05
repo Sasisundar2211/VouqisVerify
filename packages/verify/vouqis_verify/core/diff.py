@@ -3,13 +3,20 @@ from __future__ import annotations
 import subprocess
 
 
-def detect_ai_changes(ai_paths: list[str], baseline: str) -> list[str]:
-    """Return AI-related files changed between baseline and HEAD."""
+def detect_ai_changes(ai_paths: list[str], baseline: str) -> list[str] | None:
+    """Return AI-related files changed between baseline and HEAD.
+
+    Returns None (not []) when git diff itself failed — e.g. the baseline
+    isn't reachable in a shallow checkout — so callers don't mistake
+    "couldn't check" for "checked, nothing changed".
+    """
     changed = _git_diff_names(baseline)
+    if changed is None:
+        return None
     return [f for f in changed if _matches_any(f, ai_paths)]
 
 
-def _git_diff_names(baseline: str) -> list[str]:
+def _git_diff_names(baseline: str) -> list[str] | None:
     # Try three-dot diff against origin first (GitHub Actions standard)
     for ref in (f"origin/{baseline}", baseline):
         result = subprocess.run(
@@ -19,7 +26,7 @@ def _git_diff_names(baseline: str) -> list[str]:
         )
         if result.returncode == 0:
             return [l for l in result.stdout.splitlines() if l]
-    return []
+    return None
 
 
 def _matches_any(filepath: str, patterns: list[str]) -> bool:

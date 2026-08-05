@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vouqis-verify"
-version = "0.1.1"
+version = "0.1.2"
 description = "Verify every AI change before it reaches production"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -29,8 +29,8 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://vouqis.tech"
-Repository = "https://github.com/Sasisundar2211/Vouqis"
-"Bug Tracker" = "https://github.com/Sasisundar2211/Vouqis/issues"
+Repository = "https://github.com/Sasisundar2211/VouqisVerify"
+"Bug Tracker" = "https://github.com/Sasisundar2211/VouqisVerify/issues"
 
 [project.scripts]
 vouqis = "vouqis_verify.cli:app"

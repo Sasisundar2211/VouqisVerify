@@ -95,7 +95,7 @@ jobs:
           fetch-depth: 0
 
       - name: Verify AI changes
-        uses: Sasisundar2211/Vouqis-Verify/packages/verify@main
+        uses: Sasisundar2211/VouqisVerify/packages/verify@main
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 ```

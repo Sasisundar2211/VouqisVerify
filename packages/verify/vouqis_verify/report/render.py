@@ -18,10 +18,10 @@ _ICONS = {
 }
 
 
-def _verdict(result: EvalResult, changed_files: list[str]) -> str:
+def _verdict(result: EvalResult, changed_files: list[str], diff_failed: bool) -> str:
     if not result.passed:
         return "BLOCK MERGE"
-    if changed_files:
+    if diff_failed or changed_files:
         return "MERGE WITH WARNING"
     return "SAFE TO MERGE"
 
@@ -30,7 +30,7 @@ def _confidence(verdict: str) -> str:
     return "Medium" if verdict == "MERGE WITH WARNING" else "High"
 
 
-def _why(result: EvalResult, changed_files: list[str], verdict: str) -> list[str]:
+def _why(result: EvalResult, changed_files: list[str], verdict: str, diff_failed: bool) -> list[str]:
     if verdict == "BLOCK MERGE":
         reasons = [
             f"Evaluation command failed (exit code {result.exit_code}).",
@@ -40,6 +40,12 @@ def _why(result: EvalResult, changed_files: list[str], verdict: str) -> list[str
             reasons.append(f"{len(changed_files)} AI-related file(s) changed.")
         return reasons
     if verdict == "MERGE WITH WARNING":
+        if diff_failed:
+            return [
+                "Evaluation command completed successfully.",
+                "Could not determine which files changed (git diff failed) — review manually.",
+                "Existing tests cannot determine behavioral impact.",
+            ]
         return [
             "Evaluation command completed successfully.",
             "AI behavior files changed — human review recommended.",
@@ -72,6 +78,7 @@ class Report:
     feedback_url: str
     project_name: Optional[str] = None
     ai_paths: list[str] = field(default_factory=list)
+    diff_failed: bool = False
 
     def as_json(self) -> str:
         return json.dumps({
@@ -80,6 +87,7 @@ class Report:
             "why": self.why,
             "changed_files": self.changed_files,
             "kinds": {f: classify_kind(f) for f in self.changed_files},
+            "diff_failed": self.diff_failed,
             "project_name": self.project_name,
             "eval": {
                 "passed": self.result.passed,
@@ -98,9 +106,12 @@ class Report:
 
         # What Changed — file categories + eval metrics
         lines += ["## What Changed", "", "| | |", "|---|---|"]
-        for path, count in _categorize(self.ai_paths, self.changed_files):
-            label = f"✓ {count} file{'s' if count != 1 else ''} changed" if count else "— no change"
-            lines.append(f"| `{path}` | {label} |")
+        if self.diff_failed:
+            lines.append("| **AI file detection** | ⚠️ Failed — could not diff against baseline |")
+        else:
+            for path, count in _categorize(self.ai_paths, self.changed_files):
+                label = f"✓ {count} file{'s' if count != 1 else ''} changed" if count else "— no change"
+                lines.append(f"| `{path}` | {label} |")
         lines += [
             f"| **Evaluation** | {'✅ PASS' if self.result.passed else '❌ FAIL'} |",
             f"| **Duration** | {self.result.duration_ms:,}ms |",
@@ -169,15 +180,18 @@ class Report:
         )
 
 
-def build_report(cfg: Config, changed_files: list[str], result: EvalResult) -> Report:
-    v = _verdict(result, changed_files)
+def build_report(
+    cfg: Config, changed_files: list[str], result: EvalResult, diff_failed: bool = False
+) -> Report:
+    v = _verdict(result, changed_files, diff_failed)
     return Report(
         verdict=v,
         confidence=_confidence(v),
-        why=_why(result, changed_files, v),
+        why=_why(result, changed_files, v, diff_failed),
         changed_files=changed_files,
         result=result,
         feedback_url=cfg.feedback_url or _FEEDBACK_BASE,
         project_name=cfg.project_name,
         ai_paths=cfg.ai_paths,
+        diff_failed=diff_failed,
     )

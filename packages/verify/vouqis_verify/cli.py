@@ -72,7 +72,14 @@ def verify(
 
     # 1. Detect changed AI files
     changed = detect_ai_changes(cfg.ai_paths, baseline)
-    if changed:
+    diff_failed = changed is None
+    if diff_failed:
+        err.print(
+            f"  [yellow]Warning:[/yellow] could not diff against [blue]{baseline}[/blue] "
+            "(baseline not reachable — in CI, check that checkout uses fetch-depth: 0)"
+        )
+        changed = []
+    elif changed:
         console.print(f"  AI files changed: {len(changed)}")
     else:
         console.print("  [dim]No AI files changed (running eval anyway)[/dim]")
@@ -82,7 +89,7 @@ def verify(
     result = run_eval(cfg.eval_command, timeout=cfg.timeout_seconds)
 
     # 3. Build report
-    report = build_report(cfg, changed, result)
+    report = build_report(cfg, changed, result, diff_failed=diff_failed)
     if json_output:
         console.print(report.as_json(), markup=False, highlight=False)
     else:

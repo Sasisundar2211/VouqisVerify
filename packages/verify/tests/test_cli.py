@@ -62,6 +62,15 @@ def test_verify_json_flag_exits_1_on_failure():
     assert result.exit_code == 1
 
 
+def test_verify_warns_and_downgrades_when_diff_detection_fails():
+    with patch("vouqis_verify.cli.detect_ai_changes", return_value=None), \
+         patch("vouqis_verify.cli.run_eval", return_value=_result(True)), \
+         patch("vouqis_verify.cli.post_pr_comment"):
+        result = runner.invoke(app, ["verify", "--no-comment"])
+    assert "SAFE TO MERGE" not in result.output
+    assert "MERGE WITH WARNING" in result.output
+
+
 # ── PR comment wiring ─────────────────────────────────────────────────────────
 
 def test_verify_posts_comment_when_all_env_set():
