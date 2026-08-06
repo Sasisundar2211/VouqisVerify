@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useSyncExternalStore } from 'react'
 
 type OS = 'mac' | 'win'
 
@@ -9,23 +9,29 @@ const INSTALL: Record<OS, string> = {
   win: 'pip install pipx && pipx install vouqis-verify',
 }
 
-const MONO = 'var(--font-jetbrains-mono), ui-monospace, monospace'
+function subscribeNoop() {
+  return () => {}
+}
+function getDetectedOs(): OS {
+  return /Win/i.test(navigator.userAgent) ? 'win' : 'mac'
+}
+function getServerOs(): OS {
+  return 'mac'
+}
 
 type CopyButtonProps = {
   size?: 'sm' | 'lg'
   /** When provided, copies this text instead of the default install command.
-   *  Also renders as a minimal inline copy button (used by /proxy page). */
+   *  Also renders as a minimal inline copy button. */
   text?: string
 }
 
 export function CopyButton({ size = 'sm', text }: CopyButtonProps) {
   const [copied, setCopied] = useState(false)
-  const [os, setOs] = useState<OS>('mac')
+  const detectedOs = useSyncExternalStore(subscribeNoop, getDetectedOs, getServerOs)
+  const [manualOs, setManualOs] = useState<OS | null>(null)
+  const os = manualOs ?? detectedOs
   const timer = useRef<ReturnType<typeof setTimeout>>(null)
-
-  useEffect(() => {
-    if (/Win/i.test(navigator.userAgent)) setOs('win')
-  }, [])
 
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
 
@@ -43,21 +49,15 @@ export function CopyButton({ size = 'sm', text }: CopyButtonProps) {
     return (
       <button
         onClick={handleClick}
+        className="vq-pressable whitespace-nowrap rounded font-mono text-[11px]"
         style={{
           padding: '3px 10px',
-          background: copied ? 'rgba(105,185,141,0.15)' : 'rgba(255,255,255,0.06)',
-          border: `1px solid ${copied ? 'rgba(105,185,141,0.4)' : 'rgba(255,255,255,0.10)'}`,
-          borderRadius: 4,
-          fontSize: 11,
-          color: copied ? '#69B98D' : '#8C8473',
-          cursor: 'pointer',
-          fontFamily: MONO,
-          transition: 'all 0.15s ease',
-          whiteSpace: 'nowrap',
-          outline: 'none',
+          background: copied ? 'rgba(127,203,159,0.15)' : 'var(--color-surface-alt)',
+          border: `1px solid ${copied ? 'rgba(127,203,159,0.4)' : 'var(--color-border-strong)'}`,
+          color: copied ? '#7FCB9F' : 'var(--color-fg-tertiary)',
         }}
       >
-        {copied ? '✓ copied' : 'copy'}
+        {copied ? 'copied' : 'copy'}
       </button>
     )
   }
@@ -70,23 +70,18 @@ export function CopyButton({ size = 'sm', text }: CopyButtonProps) {
   return (
     <div>
       {/* macOS / Windows tab switcher */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
+      <div className="mb-2.5 flex gap-1">
         {(['mac', 'win'] as OS[]).map((o) => (
           <button
             key={o}
-            onClick={() => setOs(o)}
+            onClick={() => setManualOs(o)}
+            aria-pressed={os === o}
+            className="vq-pressable rounded border font-mono text-[11px] tracking-wide"
             style={{
-              fontFamily: MONO,
-              fontSize: 11,
-              letterSpacing: '0.04em',
               padding: '4px 12px',
-              background: os === o ? '#15120E' : 'transparent',
-              color: os === o ? '#E9E3D5' : '#8C8473',
-              border: '1px solid rgba(21,18,14,0.20)',
-              borderRadius: 3,
-              cursor: 'pointer',
-              transition: 'all 120ms ease',
-              outline: 'none',
+              background: os === o ? 'var(--color-surface-elevated)' : 'transparent',
+              color: os === o ? 'var(--color-fg)' : 'var(--color-fg-tertiary)',
+              borderColor: 'var(--color-border-strong)',
             }}
           >
             {o === 'mac' ? 'macOS' : 'Windows'}
@@ -96,39 +91,25 @@ export function CopyButton({ size = 'sm', text }: CopyButtonProps) {
 
       <button
         onClick={handleClick}
-        className="vq-btn-dark"
+        className="vq-pressable inline-flex max-w-full items-center gap-2.5 overflow-x-auto whitespace-nowrap rounded font-mono"
         style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 10,
           height,
           padding: `0 6px 0 ${paddingLeft}px`,
-          background: '#15120E',
-          color: '#E9E3D5',
-          border: 'none',
-          borderRadius: 3,
-          cursor: 'pointer',
-          fontFamily: MONO,
+          background: 'var(--color-surface-elevated)',
+          color: 'var(--color-fg)',
+          border: '1px solid var(--color-border-strong)',
           fontSize,
-          transition: 'transform 160ms cubic-bezier(0.23,1,0.32,1), background 150ms ease',
-          whiteSpace: 'nowrap',
         }}
       >
-        <span style={{ color: '#ED4B2A' }}>$</span>
+        <span style={{ color: 'var(--color-purple)' }}>$</span>
         <span>{cmd}</span>
         <span
+          className="inline-flex shrink-0 items-center justify-center rounded-sm font-mono text-[11px] tracking-wide"
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
             width: badgeSize,
             height: badgeSize,
-            background: 'rgba(255,255,255,0.07)',
-            color: '#B9B2A1',
-            fontSize: 11,
-            letterSpacing: '0.08em',
-            borderRadius: 2,
-            flexShrink: 0,
+            background: 'var(--color-purple-soft)',
+            color: 'var(--color-fg-secondary)',
           }}
         >
           {copied ? 'copied' : 'copy'}

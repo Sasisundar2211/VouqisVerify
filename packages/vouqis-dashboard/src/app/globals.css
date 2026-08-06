@@ -6,25 +6,88 @@
   --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 }
 
+@theme {
+  --color-bg: #09070F;
+  --color-surface: #0F0E14;
+  --color-surface-alt: #16151D;
+  --color-surface-elevated: #1A1923;
+  --color-fg: #F0EEF9;
+  --color-fg-secondary: #C0C0C0;
+  --color-fg-tertiary: rgba(192, 192, 192, 0.5);
+  --color-fg-quaternary: rgba(192, 192, 192, 0.3);
+  --color-purple: #7B3DFF;
+  --color-purple-hover: #8847FF;
+  --color-purple-soft: rgba(123, 61, 255, 0.08);
+  --color-purple-border: rgba(123, 61, 255, 0.25);
+  /* Lighter tint reserved for small/readable purple text (links, hover, labels).
+     #7B3DFF only hits ~3.8:1 on --color-bg, below the 4.5:1 AA text minimum. */
+  --color-purple-text: #A578FF;
+  --color-silver: #C0C0C0;
+  --color-border: rgba(192, 192, 192, 0.08);
+  --color-border-strong: rgba(192, 192, 192, 0.16);
+  --color-border-purple: rgba(123, 61, 255, 0.3);
+  --color-block: #D95B5B;
+  --color-block-bg: rgba(217, 91, 91, 0.08);
+  --color-warn: #C9A96E;
+  --color-warn-bg: rgba(201, 169, 110, 0.08);
+  --color-safe: #A0A0A0;
+  --color-safe-bg: rgba(160, 160, 160, 0.08);
+}
+
 @layer base {
   *, *::before, *::after { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
+  html, body { margin: 0; padding: 0; overflow-x: hidden; }
+
   body {
-    background: #EFEAE0;
-    color: #15120E;
+    background: var(--color-bg);
+    color: var(--color-fg);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     overflow-x: hidden;
+    line-height: 1.6;
   }
-  ::selection { background: #FF6A4D; color: #16130E; }
+
+  ::selection {
+    background: var(--color-purple);
+    color: #ffffff;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+
+  p { margin: 0; }
+  ul, ol { margin: 0; padding: 0; }
+  button {
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  img { max-width: 100%; height: auto; }
+
+  textarea {
+    font-family: inherit;
+    resize: vertical;
+  }
+
+  input[type="email"],
+  input[type="text"],
+  input[type="tel"],
+  textarea {
+    -webkit-appearance: none;
+  }
 }
 
-@keyframes vq-marquee {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
-
+/* Animation keyframes */
 @keyframes vq-blink {
   0%, 49%  { opacity: 1; }
   50%, 100% { opacity: 0; }
@@ -56,14 +119,21 @@
   to   { transform: scaleX(1); }
 }
 
+@keyframes vq-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *, *::before, *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
   }
 }
 
+/* Skip to content link */
 .skip-link {
   position: absolute;
   width: 1px;
@@ -87,46 +157,60 @@
   overflow: visible;
   clip-path: none;
   white-space: normal;
-  background: #15120E;
-  color: #EFEAE0;
+  background: var(--color-bg);
+  color: var(--color-fg);
   z-index: 9999;
   border-radius: 4px;
-  font-family: var(--font-jetbrains-mono), ui-monospace, monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
+  border: 1px solid var(--color-border-strong);
 }
 
-.vq-nav-link:hover { color: #15120E; }
-.vq-btn-outline:hover { background: rgba(21,18,14,0.05); }
-.vq-btn-dark:hover { background: #221d15; }
-.vq-text-link:hover { opacity: 0.65; }
-
-/* ── Responsive ─────────────────────────────────────────────────────────── */
-
-/* Hide centre nav on screens too narrow to fit it comfortably */
-@media (max-width: 860px) {
-  .vq-nav-center { display: none; }
+/* Focus states */
+:focus-visible {
+  outline: 2px solid var(--color-purple);
+  outline-offset: 2px;
 }
 
-/* Stack header buttons on very small phones */
-@media (max-width: 400px) {
-  .vq-header-actions {
-    gap: 6px;
-  }
-  .vq-header-actions a {
-    padding: 8px 10px !important;
-    font-size: 11px !important;
-  }
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
 }
 
-/* Hero: hide right-panel inspector below 540px — hero copy is the primary message */
-@media (max-width: 540px) {
-  .vq-hero-rhs { display: none; }
+/* Scroll-reveal (IntersectionObserver driven, transform+opacity only) */
+.vq-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.vq-reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
-/* CTA buttons: stack vertically on small screens */
-@media (max-width: 480px) {
-  .vq-cta-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+/* Shared interactive press feedback */
+.vq-pressable {
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.vq-pressable:active {
+  transform: scale(0.97);
+}
+
+/* Accessible inline text link on dark backgrounds */
+.vq-text-link {
+  color: var(--color-purple-text);
+  text-underline-offset: 3px;
+  text-decoration: underline;
+  text-decoration-color: rgba(165, 120, 255, 0.4);
+  transition: text-decoration-color 0.2s ease;
+}
+.vq-text-link:hover {
+  text-decoration-color: var(--color-purple-text);
 }
