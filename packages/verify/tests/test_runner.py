@@ -1,3 +1,5 @@
+import sys
+
 from vouqis_verify.core.runner import run_eval
 
 
@@ -24,7 +26,7 @@ def test_captures_stderr():
 
 
 def test_timeout_returns_failure():
-    result = run_eval("sleep 10", timeout=1)
+    result = run_eval(f'"{sys.executable}" -c "import time; time.sleep(10)"', timeout=1)
     assert result.passed is False
     assert result.exit_code == -1
     assert "timed out" in result.stderr

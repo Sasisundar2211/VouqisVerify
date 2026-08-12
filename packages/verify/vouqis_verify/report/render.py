@@ -30,7 +30,9 @@ def _confidence(verdict: str) -> str:
     return "Medium" if verdict == "MERGE WITH WARNING" else "High"
 
 
-def _why(result: EvalResult, changed_files: list[str], verdict: str, diff_failed: bool) -> list[str]:
+def _why(
+    result: EvalResult, changed_files: list[str], verdict: str, diff_failed: bool
+) -> list[str]:
     if verdict == "BLOCK MERGE":
         reasons = [
             f"Evaluation command failed (exit code {result.exit_code}).",
@@ -70,8 +72,8 @@ def _categorize(ai_paths: list[str], changed_files: list[str]) -> list[tuple[str
 
 @dataclass
 class Report:
-    verdict: str         # "SAFE TO MERGE" | "MERGE WITH WARNING" | "BLOCK MERGE"
-    confidence: str      # "High" | "Medium"
+    verdict: str  # "SAFE TO MERGE" | "MERGE WITH WARNING" | "BLOCK MERGE"
+    confidence: str  # "High" | "Medium"
     why: list[str]
     changed_files: list[str]
     result: EvalResult
@@ -81,21 +83,24 @@ class Report:
     diff_failed: bool = False
 
     def as_json(self) -> str:
-        return json.dumps({
-            "verdict": self.verdict,
-            "confidence": self.confidence,
-            "why": self.why,
-            "changed_files": self.changed_files,
-            "kinds": {f: classify_kind(f) for f in self.changed_files},
-            "diff_failed": self.diff_failed,
-            "project_name": self.project_name,
-            "eval": {
-                "passed": self.result.passed,
-                "exit_code": self.result.exit_code,
-                "duration_ms": self.result.duration_ms,
-                "command": self.result.command,
+        return json.dumps(
+            {
+                "verdict": self.verdict,
+                "confidence": self.confidence,
+                "why": self.why,
+                "changed_files": self.changed_files,
+                "kinds": {f: classify_kind(f) for f in self.changed_files},
+                "diff_failed": self.diff_failed,
+                "project_name": self.project_name,
+                "eval": {
+                    "passed": self.result.passed,
+                    "exit_code": self.result.exit_code,
+                    "duration_ms": self.result.duration_ms,
+                    "command": self.result.command,
+                },
             },
-        }, indent=2)
+            indent=2,
+        )
 
     def as_markdown(self) -> str:
         icon = _ICONS[self.verdict]
@@ -110,7 +115,9 @@ class Report:
             lines.append("| **AI file detection** | ⚠️ Failed — could not diff against baseline |")
         else:
             for path, count in _categorize(self.ai_paths, self.changed_files):
-                label = f"✓ {count} file{'s' if count != 1 else ''} changed" if count else "— no change"
+                label = (
+                    f"✓ {count} file{'s' if count != 1 else ''} changed" if count else "— no change"
+                )
                 lines.append(f"| `{path}` | {label} |")
         lines += [
             f"| **Evaluation** | {'✅ PASS' if self.result.passed else '❌ FAIL'} |",
@@ -133,15 +140,19 @@ class Report:
 
         if self.changed_files:
             lines.append("")
-            lines.append("Changed: " + ", ".join(
-                f"`{f}` _({classify_kind(f)})_" for f in self.changed_files
-            ))
+            lines.append(
+                "Changed: " + ", ".join(f"`{f}` _({classify_kind(f)})_" for f in self.changed_files)
+            )
 
         # Eval output (collapsible)
         output = (self.result.stdout + self.result.stderr).strip()
         if output:
             truncated = output[-_OUTPUT_CAP:] if len(output) > _OUTPUT_CAP else output
-            prefix = f"_(truncated — showing last {_OUTPUT_CAP} chars)_\n\n" if len(output) > _OUTPUT_CAP else ""
+            prefix = (
+                f"_(truncated — showing last {_OUTPUT_CAP} chars)_\n\n"
+                if len(output) > _OUTPUT_CAP
+                else ""
+            )
             lines += [
                 "",
                 "<details>",

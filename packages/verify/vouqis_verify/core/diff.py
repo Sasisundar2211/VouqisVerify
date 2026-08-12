@@ -25,7 +25,7 @@ def _git_diff_names(baseline: str) -> list[str] | None:
             text=True,
         )
         if result.returncode == 0:
-            return [l for l in result.stdout.splitlines() if l]
+            return [path for path in result.stdout.splitlines() if path]
     return None
 
 

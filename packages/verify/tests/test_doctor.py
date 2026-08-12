@@ -31,6 +31,17 @@ def test_doctor_fails_when_config_missing():
     assert result.exit_code == 1
 
 
+def test_doctor_fails_when_config_is_invalid(tmp_path):
+    config = tmp_path / "vouqis.yml"
+    config.write_text("timeout_seconds: 0", encoding="utf-8")
+
+    with _mock_git(0):
+        result = runner.invoke(app, ["doctor", "--config", str(config)])
+
+    assert result.exit_code == 1
+    assert "config invalid" in result.output
+
+
 def test_doctor_fails_when_not_in_git_repo():
     with tempfile.TemporaryDirectory() as d:
         config = Path(d) / "vouqis.yml"

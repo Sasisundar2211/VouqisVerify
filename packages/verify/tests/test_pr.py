@@ -15,6 +15,7 @@ def _mock_response(status: int):
 
 # ── success ───────────────────────────────────────────────────────────────────
 
+
 def test_succeeds_on_201():
     with patch("vouqis_verify.github.pr.urllib.request.urlopen", return_value=_mock_response(201)):
         post_pr_comment("owner/repo", 42, "token", "body")
@@ -26,6 +27,7 @@ def test_succeeds_on_200():
 
 
 # ── failure ───────────────────────────────────────────────────────────────────
+
 
 def test_raises_on_403():
     with patch("vouqis_verify.github.pr.urllib.request.urlopen", return_value=_mock_response(403)):
@@ -40,6 +42,7 @@ def test_raises_on_404():
 
 
 # ── request shape ─────────────────────────────────────────────────────────────
+
 
 def test_posts_to_correct_url():
     captured = []

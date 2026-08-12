@@ -2,7 +2,6 @@ import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 from typer.testing import CliRunner
 
 from vouqis_verify.cli import app
@@ -23,13 +22,16 @@ def _result(passed: bool) -> EvalResult:
 
 
 def _verify(extra_args: list[str] = (), passed: bool = True, changed: list[str] | None = None):
-    with patch("vouqis_verify.cli.detect_ai_changes", return_value=changed or []), \
-         patch("vouqis_verify.cli.run_eval", return_value=_result(passed)), \
-         patch("vouqis_verify.cli.post_pr_comment"):
+    with (
+        patch("vouqis_verify.cli.detect_ai_changes", return_value=changed or []),
+        patch("vouqis_verify.cli.run_eval", return_value=_result(passed)),
+        patch("vouqis_verify.cli.post_pr_comment"),
+    ):
         return runner.invoke(app, ["verify", "--no-comment", *extra_args])
 
 
 # ── exit codes ────────────────────────────────────────────────────────────────
+
 
 def test_verify_exits_0_on_pass():
     assert _verify(passed=True).exit_code == 0
@@ -40,6 +42,7 @@ def test_verify_exits_1_on_failure():
 
 
 # ── output ────────────────────────────────────────────────────────────────────
+
 
 def test_verify_prints_verdict():
     result = _verify(passed=True)
@@ -63,9 +66,11 @@ def test_verify_json_flag_exits_1_on_failure():
 
 
 def test_verify_warns_and_downgrades_when_diff_detection_fails():
-    with patch("vouqis_verify.cli.detect_ai_changes", return_value=None), \
-         patch("vouqis_verify.cli.run_eval", return_value=_result(True)), \
-         patch("vouqis_verify.cli.post_pr_comment"):
+    with (
+        patch("vouqis_verify.cli.detect_ai_changes", return_value=None),
+        patch("vouqis_verify.cli.run_eval", return_value=_result(True)),
+        patch("vouqis_verify.cli.post_pr_comment"),
+    ):
         result = runner.invoke(app, ["verify", "--no-comment"])
     assert "SAFE TO MERGE" not in result.output
     assert "MERGE WITH WARNING" in result.output
@@ -73,25 +78,33 @@ def test_verify_warns_and_downgrades_when_diff_detection_fails():
 
 # ── PR comment wiring ─────────────────────────────────────────────────────────
 
+
 def test_verify_posts_comment_when_all_env_set():
     mock_comment = MagicMock()
-    with patch("vouqis_verify.cli.detect_ai_changes", return_value=[]), \
-         patch("vouqis_verify.cli.run_eval", return_value=_result(True)), \
-         patch("vouqis_verify.cli.post_pr_comment", mock_comment):
+    with (
+        patch("vouqis_verify.cli.detect_ai_changes", return_value=[]),
+        patch("vouqis_verify.cli.run_eval", return_value=_result(True)),
+        patch("vouqis_verify.cli.post_pr_comment", mock_comment),
+    ):
         runner.invoke(app, ["verify", "--pr", "42", "--repo", "owner/repo", "--token", "tok"])
     mock_comment.assert_called_once()
 
 
 def test_verify_skips_comment_with_no_comment_flag():
     mock_comment = MagicMock()
-    with patch("vouqis_verify.cli.detect_ai_changes", return_value=[]), \
-         patch("vouqis_verify.cli.run_eval", return_value=_result(True)), \
-         patch("vouqis_verify.cli.post_pr_comment", mock_comment):
-        runner.invoke(app, ["verify", "--no-comment", "--pr", "42", "--repo", "owner/repo", "--token", "tok"])
+    with (
+        patch("vouqis_verify.cli.detect_ai_changes", return_value=[]),
+        patch("vouqis_verify.cli.run_eval", return_value=_result(True)),
+        patch("vouqis_verify.cli.post_pr_comment", mock_comment),
+    ):
+        runner.invoke(
+            app, ["verify", "--no-comment", "--pr", "42", "--repo", "owner/repo", "--token", "tok"]
+        )
     mock_comment.assert_not_called()
 
 
 # ── init command ──────────────────────────────────────────────────────────────
+
 
 def test_init_creates_config_file():
     with tempfile.TemporaryDirectory() as d:

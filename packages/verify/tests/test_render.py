@@ -18,6 +18,7 @@ def _result(passed: bool, stdout: str = "", stderr: str = "") -> EvalResult:
 
 # ── verdict strings ────────────────────────────────────────────────────────────
 
+
 def test_pass_no_ai_changes_is_safe_to_merge():
     md = build_report(Config(), [], _result(True)).as_markdown()
     assert "SAFE TO MERGE" in md
@@ -38,6 +39,7 @@ def test_pass_with_ai_changes_is_merge_with_warning():
 
 # ── confidence ─────────────────────────────────────────────────────────────────
 
+
 def test_confidence_high_when_no_ai_changes_and_passing():
     assert build_report(Config(), [], _result(True)).confidence == "High"
 
@@ -51,6 +53,7 @@ def test_confidence_high_when_failing():
 
 
 # ── Why section ────────────────────────────────────────────────────────────────
+
 
 def test_why_section_present():
     assert "## Why" in build_report(Config(), [], _result(True)).as_markdown()
@@ -67,6 +70,7 @@ def test_why_explains_warning_on_ai_changes():
 
 
 # ── What Changed section ──────────────────────────────────────────────────────
+
 
 def test_what_changed_section_present():
     md = build_report(Config(), [], _result(True)).as_markdown()
@@ -97,8 +101,11 @@ def test_what_changed_includes_duration():
 
 # ── changed files (listed under Why) ─────────────────────────────────────────
 
+
 def test_changed_files_listed():
-    md = build_report(Config(), ["prompts/system.txt", "src/agents/chat.py"], _result(True)).as_markdown()
+    md = build_report(
+        Config(), ["prompts/system.txt", "src/agents/chat.py"], _result(True)
+    ).as_markdown()
     assert "prompts/system.txt" in md
     assert "src/agents/chat.py" in md
 
@@ -110,6 +117,7 @@ def test_changed_files_tagged_with_kind():
 
 
 # ── eval output ───────────────────────────────────────────────────────────────
+
 
 def test_eval_output_in_details():
     md = build_report(Config(), [], _result(True, stdout="12 passed")).as_markdown()
@@ -123,6 +131,7 @@ def test_long_output_is_truncated():
 
 
 # ── feedback ──────────────────────────────────────────────────────────────────
+
 
 def test_feedback_question_present():
     md = build_report(Config(), [], _result(True)).as_markdown()
@@ -145,6 +154,7 @@ def test_custom_feedback_url():
 
 # ── project_name ──────────────────────────────────────────────────────────────
 
+
 def test_project_name_in_header():
     cfg = Config(project_name="My AI App")
     md = build_report(cfg, [], _result(True)).as_markdown()
@@ -157,6 +167,7 @@ def test_no_project_name_plain_header():
 
 
 # ── diff detection failure (git diff itself failed, not "no changes") ────────
+
 
 def test_diff_failed_is_not_safe_to_merge():
     md = build_report(Config(), [], _result(True), diff_failed=True).as_markdown()
@@ -195,6 +206,7 @@ def test_json_diff_failed_defaults_false():
 
 
 # ── JSON output (FR-010) ──────────────────────────────────────────────────────
+
 
 def test_json_is_valid():
     data = json.loads(build_report(Config(), [], _result(True)).as_json())

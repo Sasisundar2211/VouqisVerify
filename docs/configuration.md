@@ -1,6 +1,7 @@
 # Configuration Reference
 
 Vouqis Verify is configured via a single `vouqis.yml` file in your repository root.
+An existing configuration with invalid YAML or invalid field values is rejected rather than silently replaced with defaults.
 
 ## Full Reference
 
@@ -46,6 +47,7 @@ ai_paths:
 |---|---|
 | Eval failed (exit non-zero) | ❌ BLOCK MERGE |
 | Eval passed + AI files changed | ⚠️ MERGE WITH WARNING |
+| Diff cannot be determined | MERGE WITH WARNING |
 | Eval passed + no AI files changed | ✅ SAFE TO MERGE |
 
 Verdicts are deterministic. No AI is used to generate them.

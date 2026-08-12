@@ -29,7 +29,7 @@ packages/verify/
 └── vouqis_verify/
     ├── cli.py          # Typer app: init, verify, doctor commands
     ├── config/
-    │   └── schema.py   # Pydantic Config model, load_config, write_default_config
+    │   └── schema.py   # dataclass Config model, load_config, write_default_config
     ├── core/
     │   ├── diff.py     # git diff → changed AI files
     │   └── runner.py   # subprocess eval execution → EvalResult
@@ -49,6 +49,8 @@ eval passed
   + ai_paths changed → MERGE WITH WARNING (confidence: Medium)
   + no ai changes    → SAFE TO MERGE  (confidence: High)
 ```
+
+If the diff cannot be determined, the report returns MERGE WITH WARNING; it never treats that unknown state as SAFE TO MERGE.
 
 Every verdict cites the rule that produced it in the "Why" section of the PR comment.
 

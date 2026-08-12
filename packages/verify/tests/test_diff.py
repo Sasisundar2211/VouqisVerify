@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from vouqis_verify.core.diff import detect_ai_changes, _matches_any
+from vouqis_verify.core.diff import _matches_any, detect_ai_changes
 
 
 def _mock_diff(changed: list[str]):
@@ -50,6 +50,7 @@ def test_returns_none_when_git_diff_fails():
     """A failed git diff (e.g. shallow clone missing the baseline) must be
     distinguishable from a successful diff that found zero AI files changed —
     otherwise verify() silently reports SAFE TO MERGE with no real basis."""
+
     class FailResult:
         returncode = 1
         stdout = ""

@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from vouqis_verify.config.schema import Config, load_config, write_default_config
+from vouqis_verify.config.schema import ConfigError, load_config, write_default_config
 
 
 def test_defaults_when_file_missing():
@@ -30,6 +30,22 @@ def test_loads_ai_paths():
     cfg = load_config(path)
     assert "prompts/" in cfg.ai_paths
     assert "evals/" in cfg.ai_paths
+
+
+def test_invalid_yaml_raises_config_error(tmp_path):
+    path = tmp_path / "vouqis.yml"
+    path.write_text("ai_paths: [", encoding="utf-8")
+
+    with pytest.raises(ConfigError, match="could not parse"):
+        load_config(path)
+
+
+def test_rejects_non_list_ai_paths(tmp_path):
+    path = tmp_path / "vouqis.yml"
+    path.write_text("ai_paths: prompts/", encoding="utf-8")
+
+    with pytest.raises(ConfigError, match="ai_paths"):
+        load_config(path)
 
 
 def test_write_default_creates_file():

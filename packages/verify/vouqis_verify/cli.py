@@ -9,7 +9,7 @@ import typer
 from rich.console import Console
 
 from vouqis_verify import __version__
-from vouqis_verify.config.schema import load_config, write_default_config
+from vouqis_verify.config.schema import ConfigError, load_config, write_default_config
 from vouqis_verify.core.diff import detect_ai_changes
 from vouqis_verify.core.runner import run_eval
 from vouqis_verify.github.pr import post_pr_comment
@@ -47,7 +47,9 @@ def init(
     try:
         write_default_config(config)
         console.print(f"[green]Created[/green] {config}")
-        console.print("Edit [bold]eval_command[/bold] and [bold]ai_paths[/bold] to match your project.")
+        console.print(
+            "Edit [bold]eval_command[/bold] and [bold]ai_paths[/bold] to match your project."
+        )
     except FileExistsError as e:
         err.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
@@ -57,17 +59,29 @@ def init(
 def verify(
     config: Path = typer.Option(Path("vouqis.yml"), "--config", "-c", help="Config file path"),
     base: Optional[str] = typer.Option(None, "--base", help="Base branch (overrides config)"),
-    pr: Optional[int] = typer.Option(None, "--pr", envvar="PR_NUMBER", help="PR number for comment"),
-    repo: Optional[str] = typer.Option(None, "--repo", envvar="GITHUB_REPOSITORY", help="owner/repo"),
-    token: Optional[str] = typer.Option(None, "--token", envvar="GITHUB_TOKEN", help="GitHub token"),
+    pr: Optional[int] = typer.Option(
+        None, "--pr", envvar="PR_NUMBER", help="PR number for comment"
+    ),
+    repo: Optional[str] = typer.Option(
+        None, "--repo", envvar="GITHUB_REPOSITORY", help="owner/repo"
+    ),
+    token: Optional[str] = typer.Option(
+        None, "--token", envvar="GITHUB_TOKEN", help="GitHub token"
+    ),
     no_comment: bool = typer.Option(False, "--no-comment", help="Skip posting the PR comment"),
     json_output: bool = typer.Option(False, "--json", help="Print structured JSON to stdout"),
 ) -> None:
     """Run evaluation and generate a deployment review for the current PR."""
-    cfg = load_config(config)
+    try:
+        cfg = load_config(config)
+    except ConfigError as exc:
+        err.print(f"[red]Error:[/red] invalid configuration: {exc}")
+        raise typer.Exit(2)
     baseline = base or cfg.baseline
 
-    console.print(f"[bold]Vouqis Verify[/bold] [dim]──[/dim] comparing against [blue]{baseline}[/blue]")
+    console.print(
+        f"[bold]Vouqis Verify[/bold] [dim]──[/dim] comparing against [blue]{baseline}[/blue]"
+    )
     console.print(f"  eval: [dim]{cfg.eval_command}[/dim]")
 
     # 1. Detect changed AI files
@@ -103,7 +117,9 @@ def verify(
         except Exception as exc:
             err.print(f"  [yellow]Warning:[/yellow] could not post PR comment — {exc}")
     elif not no_comment and (pr or repo):
-        err.print("  [dim]Skipping PR comment (GITHUB_TOKEN, PR_NUMBER, or GITHUB_REPOSITORY not set)[/dim]")
+        err.print(
+            "  [dim]Skipping PR comment (GITHUB_TOKEN, PR_NUMBER, or GITHUB_REPOSITORY not set)[/dim]"
+        )
 
     if not result.passed:
         raise typer.Exit(1)
