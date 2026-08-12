@@ -1,3 +1,4 @@
+import json
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -63,6 +64,27 @@ def test_verify_json_flag_includes_verdict_key():
 def test_verify_json_flag_exits_1_on_failure():
     result = _verify(extra_args=["--json"], passed=False)
     assert result.exit_code == 1
+
+
+def test_verify_json_stdout_is_clean_parseable_json():
+    """--json is documented as stdout output "for integrations" — progress
+    lines must not be interleaved with it on the same stream."""
+    result = _verify(extra_args=["--json"], passed=True, changed=["prompts/system.md"])
+    parsed = json.loads(result.stdout)
+    assert parsed["verdict"] == "MERGE WITH WARNING"
+
+
+def test_verify_warns_when_config_file_missing():
+    with (
+        tempfile.TemporaryDirectory() as d,
+        patch("vouqis_verify.cli.detect_ai_changes", return_value=[]),
+        patch("vouqis_verify.cli.run_eval", return_value=_result(True)),
+        patch("vouqis_verify.cli.post_pr_comment"),
+    ):
+        missing = Path(d) / "vouqis.yml"
+        result = runner.invoke(app, ["verify", "--no-comment", "--config", str(missing)])
+    assert "not found" in result.output
+    assert "vouqis init" in result.output
 
 
 def test_verify_warns_and_downgrades_when_diff_detection_fails():

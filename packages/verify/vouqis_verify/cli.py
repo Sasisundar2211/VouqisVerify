@@ -72,6 +72,15 @@ def verify(
     json_output: bool = typer.Option(False, "--json", help="Print structured JSON to stdout"),
 ) -> None:
     """Run evaluation and generate a deployment review for the current PR."""
+    # Progress/status lines go to stderr in --json mode so stdout stays
+    # parseable JSON (the documented contract for scripting/integrations).
+    status = err if json_output else console
+
+    if not config.exists():
+        status.print(
+            f"  [yellow]Warning:[/yellow] {config} not found — using default configuration "
+            "(run [bold]vouqis init[/bold] to create one)"
+        )
     try:
         cfg = load_config(config)
     except ConfigError as exc:
@@ -79,10 +88,10 @@ def verify(
         raise typer.Exit(2)
     baseline = base or cfg.baseline
 
-    console.print(
+    status.print(
         f"[bold]Vouqis Verify[/bold] [dim]──[/dim] comparing against [blue]{baseline}[/blue]"
     )
-    console.print(f"  eval: [dim]{cfg.eval_command}[/dim]")
+    status.print(f"  eval: [dim]{cfg.eval_command}[/dim]")
 
     # 1. Detect changed AI files
     changed = detect_ai_changes(cfg.ai_paths, baseline)
@@ -94,12 +103,12 @@ def verify(
         )
         changed = []
     elif changed:
-        console.print(f"  AI files changed: {len(changed)}")
+        status.print(f"  AI files changed: {len(changed)}")
     else:
-        console.print("  [dim]No AI files changed (running eval anyway)[/dim]")
+        status.print("  [dim]No AI files changed (running eval anyway)[/dim]")
 
     # 2. Run the evaluation command
-    console.print(f"\n  [dim]Running:[/dim] {cfg.eval_command}")
+    status.print(f"\n  [dim]Running:[/dim] {cfg.eval_command}")
     result = run_eval(cfg.eval_command, timeout=cfg.timeout_seconds)
 
     # 3. Build report
@@ -113,7 +122,7 @@ def verify(
     if not no_comment and pr and repo and token:
         try:
             post_pr_comment(repo, pr, token, report.as_markdown())
-            console.print(f"  [green]Commented on[/green] {repo}#{pr}")
+            status.print(f"  [green]Commented on[/green] {repo}#{pr}")
         except Exception as exc:
             err.print(f"  [yellow]Warning:[/yellow] could not post PR comment — {exc}")
     elif not no_comment and (pr or repo):
