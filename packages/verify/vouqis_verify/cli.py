@@ -10,10 +10,8 @@ from rich.console import Console
 
 from vouqis_verify import __version__
 from vouqis_verify.config.schema import ConfigError, load_config, write_default_config
-from vouqis_verify.core.diff import detect_ai_changes
-from vouqis_verify.core.runner import run_eval
+from vouqis_verify.core.pipeline import run_verification
 from vouqis_verify.github.pr import post_pr_comment
-from vouqis_verify.report.render import build_report
 
 app = typer.Typer(
     name="vouqis",
@@ -92,27 +90,20 @@ def verify(
         f"[bold]Vouqis Verify[/bold] [dim]──[/dim] comparing against [blue]{baseline}[/blue]"
     )
     status.print(f"  eval: [dim]{cfg.eval_command}[/dim]")
+    status.print(f"\n  [dim]Running:[/dim] {cfg.eval_command}")
 
-    # 1. Detect changed AI files
-    changed = detect_ai_changes(cfg.ai_paths, baseline)
-    diff_failed = changed is None
-    if diff_failed:
+    report = run_verification(cfg, baseline)
+
+    if report.diff_failed:
         err.print(
             f"  [yellow]Warning:[/yellow] could not diff against [blue]{baseline}[/blue] "
             "(baseline not reachable — in CI, check that checkout uses fetch-depth: 0)"
         )
-        changed = []
-    elif changed:
-        status.print(f"  AI files changed: {len(changed)}")
+    elif report.changed_files:
+        status.print(f"  AI files changed: {len(report.changed_files)}")
     else:
         status.print("  [dim]No AI files changed (running eval anyway)[/dim]")
 
-    # 2. Run the evaluation command
-    status.print(f"\n  [dim]Running:[/dim] {cfg.eval_command}")
-    result = run_eval(cfg.eval_command, timeout=cfg.timeout_seconds)
-
-    # 3. Build report
-    report = build_report(cfg, changed, result, diff_failed=diff_failed)
     if json_output:
         console.print(report.as_json(), markup=False, highlight=False)
     else:
@@ -130,7 +121,7 @@ def verify(
             "  [dim]Skipping PR comment (GITHUB_TOKEN, PR_NUMBER, or GITHUB_REPOSITORY not set)[/dim]"
         )
 
-    if not result.passed:
+    if not report.result.passed:
         raise typer.Exit(1)
 
 

@@ -23,6 +23,9 @@ class Config:
     project_name: Optional[str] = None
 
 
+_DEFAULTS = Config()
+
+
 def load_config(path: Path) -> Config:
     if not path.exists():
         return Config()
@@ -39,10 +42,10 @@ def load_config(path: Path) -> Config:
 
     try:
         config = Config(
-            eval_command=data.get("eval_command", "pytest"),
-            baseline=data.get("baseline", "main"),
-            ai_paths=data.get("ai_paths", _DEFAULT_AI_PATHS),
-            timeout_seconds=int(data.get("timeout_seconds", 300)),
+            eval_command=data.get("eval_command", _DEFAULTS.eval_command),
+            baseline=data.get("baseline", _DEFAULTS.baseline),
+            ai_paths=data.get("ai_paths", _DEFAULTS.ai_paths),
+            timeout_seconds=int(data.get("timeout_seconds", _DEFAULTS.timeout_seconds)),
             feedback_url=data.get("feedback_url"),
             project_name=data.get("project_name"),
         )
@@ -69,14 +72,9 @@ def load_config(path: Path) -> Config:
 def write_default_config(path: Path) -> None:
     if path.exists():
         raise FileExistsError(f"{path} already exists")
+    ai_paths_block = "\n".join(f"  - {p}" for p in _DEFAULTS.ai_paths)
     path.write_text(
-        "eval_command: pytest tests/eval/ -v\n"
-        "baseline: main\n"
-        "ai_paths:\n"
-        "  - prompts/\n"
-        "  - src/agents/\n"
-        "  - evals/\n"
-        "  - models/\n"
-        "  - rag/\n"
-        "  - tools/\n"
+        f"eval_command: {_DEFAULTS.eval_command}\n"
+        f"baseline: {_DEFAULTS.baseline}\n"
+        f"ai_paths:\n{ai_paths_block}\n"
     )

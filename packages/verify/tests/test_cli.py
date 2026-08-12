@@ -6,7 +6,9 @@ from unittest.mock import MagicMock, patch
 from typer.testing import CliRunner
 
 from vouqis_verify.cli import app
+from vouqis_verify.config.schema import Config
 from vouqis_verify.core.runner import EvalResult
+from vouqis_verify.report.render import Report, build_report
 
 runner = CliRunner()
 
@@ -22,10 +24,13 @@ def _result(passed: bool) -> EvalResult:
     )
 
 
+def _report(passed: bool, changed: list[str] | None = None, diff_failed: bool = False) -> Report:
+    return build_report(Config(), changed or [], _result(passed), diff_failed=diff_failed)
+
+
 def _verify(extra_args: list[str] = (), passed: bool = True, changed: list[str] | None = None):
     with (
-        patch("vouqis_verify.cli.detect_ai_changes", return_value=changed or []),
-        patch("vouqis_verify.cli.run_eval", return_value=_result(passed)),
+        patch("vouqis_verify.cli.run_verification", return_value=_report(passed, changed)),
         patch("vouqis_verify.cli.post_pr_comment"),
     ):
         return runner.invoke(app, ["verify", "--no-comment", *extra_args])
@@ -77,8 +82,7 @@ def test_verify_json_stdout_is_clean_parseable_json():
 def test_verify_warns_when_config_file_missing():
     with (
         tempfile.TemporaryDirectory() as d,
-        patch("vouqis_verify.cli.detect_ai_changes", return_value=[]),
-        patch("vouqis_verify.cli.run_eval", return_value=_result(True)),
+        patch("vouqis_verify.cli.run_verification", return_value=_report(True)),
         patch("vouqis_verify.cli.post_pr_comment"),
     ):
         missing = Path(d) / "vouqis.yml"
@@ -89,8 +93,10 @@ def test_verify_warns_when_config_file_missing():
 
 def test_verify_warns_and_downgrades_when_diff_detection_fails():
     with (
-        patch("vouqis_verify.cli.detect_ai_changes", return_value=None),
-        patch("vouqis_verify.cli.run_eval", return_value=_result(True)),
+        patch(
+            "vouqis_verify.cli.run_verification",
+            return_value=_report(True, diff_failed=True),
+        ),
         patch("vouqis_verify.cli.post_pr_comment"),
     ):
         result = runner.invoke(app, ["verify", "--no-comment"])
@@ -104,8 +110,7 @@ def test_verify_warns_and_downgrades_when_diff_detection_fails():
 def test_verify_posts_comment_when_all_env_set():
     mock_comment = MagicMock()
     with (
-        patch("vouqis_verify.cli.detect_ai_changes", return_value=[]),
-        patch("vouqis_verify.cli.run_eval", return_value=_result(True)),
+        patch("vouqis_verify.cli.run_verification", return_value=_report(True)),
         patch("vouqis_verify.cli.post_pr_comment", mock_comment),
     ):
         runner.invoke(app, ["verify", "--pr", "42", "--repo", "owner/repo", "--token", "tok"])
@@ -115,8 +120,7 @@ def test_verify_posts_comment_when_all_env_set():
 def test_verify_skips_comment_with_no_comment_flag():
     mock_comment = MagicMock()
     with (
-        patch("vouqis_verify.cli.detect_ai_changes", return_value=[]),
-        patch("vouqis_verify.cli.run_eval", return_value=_result(True)),
+        patch("vouqis_verify.cli.run_verification", return_value=_report(True)),
         patch("vouqis_verify.cli.post_pr_comment", mock_comment),
     ):
         runner.invoke(
