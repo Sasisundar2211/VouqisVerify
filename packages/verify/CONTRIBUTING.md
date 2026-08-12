@@ -4,14 +4,19 @@
 
 ```bash
 cd packages/verify
-pip install -e ".[dev]"
+uv sync --all-extras
 ```
 
-## Run tests
+## Required checks
 
 ```bash
-pytest
+uv run ruff format --check .
+uv run ruff check .
+uv run pytest -q
 ```
+
+Run `uv run ruff format .` to apply formatting. The full repository policy is
+in [`docs/codebase-standard.md`](../../docs/codebase-standard.md).
 
 ## Project layout
 
