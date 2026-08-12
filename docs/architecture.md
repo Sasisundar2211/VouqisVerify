@@ -31,6 +31,7 @@ packages/verify/
     ├── config/
     │   └── schema.py   # dataclass Config model, load_config, write_default_config
     ├── core/
+    │   ├── classify.py # keyword-based AI-change kind classification
     │   ├── diff.py     # git diff → changed AI files
     │   └── runner.py   # subprocess eval execution → EvalResult
     ├── report/
