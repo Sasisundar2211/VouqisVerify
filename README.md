@@ -11,6 +11,11 @@ for AI-related pull requests by detecting AI-related changes, running
 existing evaluation pipelines, and publishing structured review evidence
 directly to GitHub pull requests.
 
+## Product scope
+
+Vouqis Verify is an early-stage Python tool for reviewing AI-related pull requests before production. See the [product scope](docs/product-scope.md) for the MVP boundary and current claims.
+
+
 ------------------------------------------------------------------------
 
 ## Why Vouqis Verify?
@@ -80,7 +85,7 @@ Example configuration:
 
 ``` yaml
 eval_command: pytest
-baseline_branch: main
+baseline: main
 timeout_seconds: 300
 
 ai_paths:
@@ -95,7 +100,7 @@ ai_paths:
 ## GitHub Action
 
 ``` yaml
-- uses: Sasisundar2211/Vouqis-Verify/packages/verify@main
+- uses: Sasisundar2211/VouqisVerify/packages/verify@main
   with:
     github-token: ${{ secrets.GITHUB_TOKEN }}
 ```

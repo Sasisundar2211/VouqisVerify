@@ -32,7 +32,7 @@ jobs:
         with:
           fetch-depth: 0     # required for git diff against baseline
 
-      - uses: vouqis/vouqis-verify@v0.1.0
+      - uses: Sasisundar2211/VouqisVerify/packages/verify@main
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 ```

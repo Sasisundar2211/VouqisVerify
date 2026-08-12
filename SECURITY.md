@@ -4,7 +4,7 @@
 
 | Version | Supported |
 |---------|-----------|
-| `@vouqis/cli` latest | :white_check_mark: |
+| `vouqis-verify` 0.1.x | :white_check_mark: |
 
 ## Reporting a Vulnerability
 
@@ -26,9 +26,8 @@ You will receive a response within 48 hours. If the vulnerability is confirmed, 
 ## Scope
 
 This policy covers:
-- `@vouqis/cli` npm package
-- `vouqis.tech` web dashboard and API
-- The Vouqis SDK (`@vouqis/sdk`)
+- The vouqis-verify Python package
+- The bundled Vouqis Verify GitHub Action
 
 ## Known Limitations
 
