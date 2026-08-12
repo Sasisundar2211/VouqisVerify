@@ -28,7 +28,3 @@ You will receive a response within 48 hours. If the vulnerability is confirmed, 
 This policy covers:
 - The vouqis-verify Python package
 - The bundled Vouqis Verify GitHub Action
-
-## Known Limitations
-
-- The `postcss` transitive vulnerability (GHSA-qx2v-qp2m-jg93) is present inside `next`'s internal bundled copy. This affects the development/build toolchain only and is not exploitable in the deployed application. It will be resolved when Next.js ships a version with postcss ≥ 8.5.10.

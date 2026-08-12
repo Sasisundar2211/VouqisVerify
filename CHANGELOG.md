@@ -7,7 +7,7 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.1.2]
 
 ### Added
 - `vouqis doctor` command — validates config and GitHub CI environment
@@ -15,6 +15,12 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - Three-tier verdict: `SAFE TO MERGE` / `MERGE WITH WARNING` / `BLOCK MERGE`
 - `project_name` config field — shown in PR comment header
 - Decision-focused feedback question: "Did this report change your merge decision?"
+- File-kind classification (Prompt / Agent / RAG / Tool / Evaluation / Model) shown in PR comments and JSON output
+
+### Fixed
+- `vouqis verify` now rejects an invalid `vouqis.yml` (malformed YAML or out-of-range field values) with a clear error instead of silently falling back to defaults
+- A failed `git diff` (e.g. a shallow checkout without `fetch-depth: 0`) is now distinguished from "no AI files changed" — it always downgrades to `MERGE WITH WARNING` and is never reported as `SAFE TO MERGE`
+- `vouqis verify --json` no longer interleaves progress output with the JSON payload on stdout
 
 ## [0.1.0] — 2026-07-01
 
