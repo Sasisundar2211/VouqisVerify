@@ -31,9 +31,11 @@ packages/verify/
     ├── config/
     │   └── schema.py   # dataclass Config model, load_config, write_default_config
     ├── core/
-    │   ├── classify.py # keyword-based AI-change kind classification
-    │   ├── diff.py     # git diff → changed AI files
-    │   └── runner.py   # subprocess eval execution → EvalResult
+    │   ├── classify.py     # keyword-based AI-change kind classification
+    │   ├── diagnostics.py  # doctor checks: config, git, CI env vars
+    │   ├── diff.py         # git diff → changed AI files
+    │   ├── pipeline.py     # run_verification: diff → eval → report
+    │   └── runner.py       # subprocess eval execution → EvalResult
     ├── report/
     │   └── render.py   # verdict logic, Report dataclass, markdown/terminal output
     └── github/

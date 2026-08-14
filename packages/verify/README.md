@@ -27,6 +27,10 @@ Vouqis Verify runs automatically on every pull request that touches your AI code
 • AI behavior files changed — human review recommended.
 • Existing tests cannot determine behavioral impact.
 
+Behavioral impact: AI-related files changed, but no dedicated behavioral
+evaluation (e.g. groundedness, retrieval regression) is configured for
+this project — only the evaluation command's exit status was checked.
+
 Changed: `prompts/system.txt`
 
 ---
@@ -40,17 +44,17 @@ Did this report change your merge decision?
 
 ### 1. Install
 
-**macOS**
 ```bash
-brew install pipx && pipx install vouqis-verify
+pip install vouqis-verify
 ```
 
-**Windows** (PowerShell)
-```powershell
-pip install pipx && pipx install vouqis-verify
+Or, for an isolated CLI install:
+
+```bash
+pipx install vouqis-verify
 ```
 
-> Do not use `pip3 install` or `python3 -m pip install` — on modern macOS these fail with a PEP 668 externally-managed-environment error. The commands above work on both platforms.
+> On macOS, `pip3 install` / `python3 -m pip install` may fail with a PEP 668 "externally-managed-environment" error. Use `pipx`, or `python3 -m venv` first.
 > Requires Python 3.11+ and Git.
 
 ### 2. Initialise
@@ -169,7 +173,8 @@ ai_paths:
 # timeout_seconds: kill the eval command if it runs longer than this
 timeout_seconds: 300
 
-# feedback_url: link in the PR comment for 👍/👎 feedback
+# feedback_url: base link for the "did this change your merge decision?"
+#   question appended to PR comments
 #   Defaults to https://vouqis.tech/verify-feedback
 # feedback_url: https://forms.gle/yourform
 ```
@@ -181,8 +186,10 @@ timeout_seconds: 300
 | Verdict | Confidence | When |
 |---|---|---|
 | ✅ SAFE TO MERGE | High | Eval passed, no AI files changed |
-| ⚠️ MERGE WITH WARNING | Medium | Eval passed, AI files changed |
+| ⚠️ MERGE WITH WARNING | Medium | Eval passed, AI files changed — **or** the diff against baseline could not be determined |
 | ❌ BLOCK MERGE | High | Eval failed |
+
+An undeterminable diff (for example, a shallow CI checkout without `fetch-depth: 0`) is treated as unknown, not safe — it always downgrades to `MERGE WITH WARNING` and is never reported as `SAFE TO MERGE`.
 
 ---
 
@@ -244,4 +251,4 @@ eval_command: pytest tests/unit/ && pytest tests/eval/
 
 ## Feedback
 
-After each PR review, the comment includes 👍 / 👎 links. Click them to tell us whether the recommendation was useful. This is how we validate the product.
+Every PR comment ends with a decision-focused question — "Did this report change your merge decision?" — and links for each answer. The link target is configurable via `feedback_url` in `vouqis.yml`; point it at whatever your team already uses to collect responses (a form, an issue template, a Slack webhook). Vouqis Verify itself does not run a feedback collection service.

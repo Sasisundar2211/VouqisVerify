@@ -47,7 +47,7 @@ def test_raises_on_404():
 def test_posts_to_correct_url():
     captured = []
 
-    def side_effect(req):
+    def side_effect(req, **kwargs):
         captured.append(req)
         return _mock_response(201)
 
@@ -62,7 +62,7 @@ def test_posts_to_correct_url():
 def test_sends_bearer_token():
     captured = []
 
-    def side_effect(req):
+    def side_effect(req, **kwargs):
         captured.append(req)
         return _mock_response(201)
 
@@ -70,3 +70,12 @@ def test_sends_bearer_token():
         post_pr_comment("owner/repo", 1, "mytoken", "body")
 
     assert captured[0].get_header("Authorization") == "Bearer mytoken"
+
+
+def test_request_has_finite_timeout():
+    with patch(
+        "vouqis_verify.github.pr.urllib.request.urlopen", return_value=_mock_response(201)
+    ) as mock_urlopen:
+        post_pr_comment("owner/repo", 1, "mytoken", "body")
+
+    assert mock_urlopen.call_args.kwargs["timeout"] > 0

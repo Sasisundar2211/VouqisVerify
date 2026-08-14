@@ -18,6 +18,10 @@ inputs:
     description: Python version to use
     required: false
     default: "3.12"
+  package-version:
+    description: Pin a specific vouqis-verify version (default installs the latest from PyPI)
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -29,7 +33,12 @@ runs:
 
     - name: Install Vouqis Verify
       shell: bash
-      run: pip install vouqis-verify --quiet
+      run: |
+        if [ -n "${{ inputs.package-version }}" ]; then
+          pip install "vouqis-verify==${{ inputs.package-version }}" --quiet
+        else
+          pip install vouqis-verify --quiet
+        fi
 
     - name: Run Vouqis Verify
       shell: bash

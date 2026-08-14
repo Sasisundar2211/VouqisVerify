@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-import subprocess
 from pathlib import Path
 from typing import Optional
 
@@ -10,6 +8,7 @@ from rich.console import Console
 
 from vouqis_verify import __version__
 from vouqis_verify.config.schema import ConfigError, load_config, write_default_config
+from vouqis_verify.core.diagnostics import run_doctor
 from vouqis_verify.core.pipeline import run_verification
 from vouqis_verify.github.pr import post_pr_comment
 
@@ -105,7 +104,7 @@ def verify(
         status.print("  [dim]No AI files changed (running eval anyway)[/dim]")
 
     if json_output:
-        console.print(report.as_json(), markup=False, highlight=False)
+        console.print(report.as_json(), markup=False, highlight=False, soft_wrap=True)
     else:
         console.print(report.as_terminal())
 
@@ -114,7 +113,7 @@ def verify(
         try:
             post_pr_comment(repo, pr, token, report.as_markdown())
             status.print(f"  [green]Commented on[/green] {repo}#{pr}")
-        except Exception as exc:
+        except (OSError, RuntimeError) as exc:
             err.print(f"  [yellow]Warning:[/yellow] could not post PR comment — {exc}")
     elif not no_comment and (pr or repo):
         err.print(
@@ -130,34 +129,28 @@ def doctor(
     config: Path = typer.Option(Path("vouqis.yml"), "--config", "-c", help="Config file path"),
 ) -> None:
     """Validate configuration and environment."""
-    ok = True
+    result = run_doctor(config)
 
-    if config.exists():
-        try:
-            load_config(config)
-            console.print(f"[green]✓[/green]  config {config}")
-        except Exception as exc:
-            err.print(f"[red]✗[/red]  config invalid: {exc}")
-            ok = False
-    else:
+    if not result.config_exists:
         err.print(f"[red]✗[/red]  {config} not found — run [bold]vouqis init[/bold]")
-        ok = False
+    elif result.config_ok:
+        console.print(f"[green]✓[/green]  config {config}")
+    else:
+        err.print(f"[red]✗[/red]  config invalid: {result.config_error}")
 
-    git_ok = subprocess.run(["git", "rev-parse", "--git-dir"], capture_output=True).returncode == 0
-    if git_ok:
+    if result.git_ok:
         console.print("[green]✓[/green]  git repository detected")
     else:
-        err.print("[red]✗[/red]  not inside a git repository")
-        ok = False
+        err.print(f"[red]✗[/red]  {result.git_error}")
 
-    for var in ("GITHUB_TOKEN", "GITHUB_REPOSITORY", "PR_NUMBER"):
-        if os.environ.get(var):
+    for var, present in result.env_vars.items():
+        if present:
             console.print(f"[green]✓[/green]  {var}")
         else:
             console.print(f"[dim]─[/dim]  {var} [dim](required in CI)[/dim]")
 
     console.print()
-    if ok:
+    if result.ok:
         console.print("[green]Ready to verify.[/green]")
     else:
         err.print("[red]Fix the issues above before running vouqis verify.[/red]")

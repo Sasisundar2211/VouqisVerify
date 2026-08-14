@@ -60,6 +60,21 @@ def _why(
     ]
 
 
+def _behavioral_impact(changed_files: list[str], diff_failed: bool) -> str:
+    if diff_failed:
+        return (
+            "Diff detection failed — behavioral impact of any AI-related change "
+            "could not be determined."
+        )
+    if changed_files:
+        return (
+            "AI-related files changed, but no dedicated behavioral evaluation "
+            "(e.g. groundedness, retrieval regression) is configured for this "
+            "project — only the evaluation command's exit status was checked."
+        )
+    return "No AI-related files changed; no behavioral evaluation was required."
+
+
 def _categorize(ai_paths: list[str], changed_files: list[str]) -> list[tuple[str, int]]:
     counts: dict[str, int] = {p: 0 for p in ai_paths}
     for f in changed_files:
@@ -78,6 +93,7 @@ class Report:
     changed_files: list[str]
     result: EvalResult
     feedback_url: str
+    behavioral_impact: str = ""
     project_name: Optional[str] = None
     ai_paths: list[str] = field(default_factory=list)
     diff_failed: bool = False
@@ -91,6 +107,7 @@ class Report:
                 "changed_files": self.changed_files,
                 "kinds": {f: classify_kind(f) for f in self.changed_files},
                 "diff_failed": self.diff_failed,
+                "behavioral_impact": self.behavioral_impact,
                 "project_name": self.project_name,
                 "eval": {
                     "passed": self.result.passed,
@@ -123,6 +140,14 @@ class Report:
             f"| **Evaluation** | {'✅ PASS' if self.result.passed else '❌ FAIL'} |",
             f"| **Duration** | {self.result.duration_ms:,}ms |",
             f"| **Exit code** | `{self.result.exit_code}` |",
+        ]
+
+        # Behavioral Impact — always honest about what evidence exists
+        lines += [
+            "",
+            "## Behavioral Impact",
+            "",
+            self.behavioral_impact,
         ]
 
         # Recommendation
@@ -187,7 +212,8 @@ class Report:
         return (
             f"\n  {icon} {self.verdict}  ·  {self.confidence} confidence  ·  "
             f"{self.result.duration_ms:,}ms\n\n"
-            f"  Why:\n{why_lines}\n"
+            f"  Why:\n{why_lines}\n\n"
+            f"  Behavioral impact: {self.behavioral_impact}\n"
         )
 
 
@@ -202,6 +228,7 @@ def build_report(
         changed_files=changed_files,
         result=result,
         feedback_url=cfg.feedback_url or _FEEDBACK_BASE,
+        behavioral_impact=_behavioral_impact(changed_files, diff_failed),
         project_name=cfg.project_name,
         ai_paths=cfg.ai_paths,
         diff_failed=diff_failed,

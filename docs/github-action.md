@@ -44,6 +44,7 @@ jobs:
 | `github-token` | ✅ | — | Token for posting the PR comment |
 | `config-path` | ❌ | `vouqis.yml` | Path to config file |
 | `python-version` | ❌ | `3.12` | Python version to use |
+| `package-version` | ❌ | latest | Pin a specific `vouqis-verify` PyPI version instead of always installing latest |
 
 ## Environment Variables
 

@@ -18,6 +18,6 @@ def post_pr_comment(repo: str, pr: int, token: str, body: str) -> None:
             "X-GitHub-Api-Version": "2022-11-28",
         },
     )
-    with urllib.request.urlopen(req) as resp:
+    with urllib.request.urlopen(req, timeout=10) as resp:
         if resp.status not in (200, 201):
             raise RuntimeError(f"GitHub API returned {resp.status}")

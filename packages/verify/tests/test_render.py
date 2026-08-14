@@ -242,3 +242,37 @@ def test_json_kinds_map():
         build_report(Config(), ["prompts/system.txt", "rag/index.py"], _result(True)).as_json()
     )
     assert data["kinds"] == {"prompts/system.txt": "Prompt", "rag/index.py": "RAG"}
+
+
+# ── behavioral impact (evidence honesty) ──────────────────────────────────────
+
+
+def test_behavioral_impact_section_present_in_markdown():
+    md = build_report(Config(), [], _result(True)).as_markdown()
+    assert "## Behavioral Impact" in md
+
+
+def test_behavioral_impact_notes_missing_dedicated_eval_when_ai_changed():
+    md = build_report(Config(), ["prompts/system.txt"], _result(True)).as_markdown()
+    assert "no dedicated behavioral evaluation" in md
+
+
+def test_behavioral_impact_notes_diff_failure():
+    md = build_report(Config(), [], _result(True), diff_failed=True).as_markdown()
+    assert "could not be determined" in md
+
+
+def test_behavioral_impact_states_not_required_when_no_ai_changes():
+    md = build_report(Config(), [], _result(True)).as_markdown()
+    assert "no behavioral evaluation was required" in md
+
+
+def test_behavioral_impact_in_json():
+    data = json.loads(build_report(Config(), [], _result(True)).as_json())
+    assert "behavioral_impact" in data
+    assert data["behavioral_impact"]
+
+
+def test_behavioral_impact_in_terminal_output():
+    text = build_report(Config(), ["prompts/system.txt"], _result(True)).as_terminal()
+    assert "Behavioral impact:" in text

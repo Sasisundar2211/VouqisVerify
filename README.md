@@ -1,5 +1,7 @@
 # Vouqis Verify
 
+*CI for AI behavior — give reviewers proof of what an AI pull request changes before it reaches production.*
+
 Vouqis Verify is a CLI and GitHub Action that generates a deterministic, evidence-backed merge recommendation for pull requests that touch AI-related code.
 
 ## Why Vouqis Verify
@@ -104,7 +106,13 @@ Vouqis Verify ── comparing against main
     • Evaluation command completed successfully.
     • AI behavior files changed — human review recommended.
     • Existing tests cannot determine behavioral impact.
+
+  Behavioral impact: AI-related files changed, but no dedicated behavioral
+  evaluation (e.g. groundedness, retrieval regression) is configured for
+  this project — only the evaluation command's exit status was checked.
 ```
+
+Vouqis Verify never claims more than it checked. If the AI-related change touches something no configured eval covers, it says so explicitly instead of staying silent — that's the difference between "tests passed" and "safe to merge."
 
 `vouqis verify --no-comment --json` prints the same result as structured JSON on stdout, for scripting:
 
@@ -120,6 +128,7 @@ Vouqis Verify ── comparing against main
   "changed_files": ["prompts/system.txt"],
   "kinds": { "prompts/system.txt": "Prompt" },
   "diff_failed": false,
+  "behavioral_impact": "AI-related files changed, but no dedicated behavioral evaluation (e.g. groundedness, retrieval regression) is configured for this project — only the evaluation command's exit status was checked.",
   "project_name": "Fixture App",
   "eval": { "passed": true, "exit_code": 0, "duration_ms": 557, "command": "python -m pytest tests/ -q" }
 }
@@ -178,6 +187,8 @@ Full reference: [docs/configuration.md](docs/configuration.md).
 - Nothing else — there is no score parsing, no AI-generated explanation, and no evaluation framework bundled. Vouqis Verify runs the command you already have and reports its exit code.
 
 **What it explicitly does not do:** run or replace your evals, parse evaluation scores, store historical baselines, or use an LLM to produce the verdict. See [docs/architecture.md](docs/architecture.md) for the full decision engine and [docs/roadmap.md](docs/roadmap.md) for what's under consideration for later versions — none of it is implemented yet.
+
+Every Review Package includes a **Behavioral Impact** statement that says plainly what evidence does and doesn't exist for the change — for example, that AI-related files changed but no dedicated behavioral evaluation is configured. It never infers a behavioral claim the evidence doesn't support.
 
 ## Development
 
