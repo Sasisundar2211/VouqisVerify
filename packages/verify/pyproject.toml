@@ -4,12 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vouqis-verify"
-version = "0.1.2"
+version = "0.1.1"
 description = "Verify every AI change before it reaches production"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "Vouqis", email = "sasisundhar2211@gmail.com" }]
+authors = [{ name = "Sasi Sundar", email = "sasisundhar2211@gmail.com" }]
 keywords = ["ai", "evaluation", "github-actions", "llm", "testing", "ci"]
 classifiers = [
     "Development Status :: 3 - Alpha",
