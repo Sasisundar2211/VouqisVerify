@@ -244,4 +244,4 @@ eval_command: pytest tests/unit/ && pytest tests/eval/
 
 ## Feedback
 
-After each PR review, the comment includes 👍 / 👎 links. Click them to tell us whether the recommendation was useful. This is how we validate the product.
+After each PR review, the comment includes 👍 / 👎 links. Click them to tell me whether the recommendation was useful. This is how I improve the tool.
