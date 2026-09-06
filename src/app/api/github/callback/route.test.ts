@@ -17,6 +17,7 @@ const cookieState = vi.hoisted(() => {
 
 const github = vi.hoisted(() => ({
   exchangeGithubOauthCode: vi.fn(),
+  findUserAppInstallation: vi.fn(),
   verifyUserInstallationAccess: vi.fn(),
 }));
 
@@ -42,7 +43,9 @@ describe("GET /api/github/callback", () => {
     cookieState.values.clear();
     process.env.SESSION_SECRET = "test-session-secret-that-is-separate-from-github";
     process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
+    process.env.GITHUB_APP_SLUG = "vouqis-verify";
     github.exchangeGithubOauthCode.mockResolvedValue("user-token");
+    github.findUserAppInstallation.mockResolvedValue({ installationId: 42, accountLogin: "octocat" });
     github.verifyUserInstallationAccess.mockResolvedValue({ accountLogin: "octocat" });
   });
 
@@ -81,10 +84,28 @@ describe("GET /api/github/callback", () => {
     expect(response.headers.get("location")).toBe("http://localhost:3000/?error=missing_code");
   });
 
-  it("rejects a missing pending installation", async () => {
+  it("connects a returning user by discovering an existing installation", async () => {
     await setOauthStateCookie("expected-state");
     const response = await GET(callbackUrl("code=authorization-code&state=expected-state"));
-    expect(response.headers.get("location")).toBe("http://localhost:3000/?error=missing_installation");
+
+    expect(github.findUserAppInstallation).toHaveBeenCalledWith("user-token");
+    expect(await getSessionCookie()).toMatchObject({ installationId: 42, accountLogin: "octocat" });
+    expect(response.headers.get("location")).toBe("http://localhost:3000/");
+  });
+
+  it("sends a first-time user to install the App", async () => {
+    await setOauthStateCookie("expected-state");
+    github.findUserAppInstallation.mockResolvedValue(null);
+
+    const response = await GET(callbackUrl("code=authorization-code&state=expected-state"));
+    const location = new URL(response.headers.get("location")!);
+    const installState = location.searchParams.get("state");
+
+    expect(location.origin + location.pathname).toBe(
+      "https://github.com/apps/vouqis-verify/installations/new",
+    );
+    expect(installState).toMatch(/^[A-Za-z0-9_-]{40,}$/);
+    expect(cookieState.values.has(INSTALL_STATE_COOKIE)).toBe(true);
   });
 
   it("rejects a user who cannot access the pending installation", async () => {
@@ -113,6 +134,7 @@ describe("GET /api/github/callback", () => {
       "http://localhost:3000/api/github/callback",
     );
     expect(github.verifyUserInstallationAccess).toHaveBeenCalledWith("user-token", 42);
+    expect(github.findUserAppInstallation).not.toHaveBeenCalled();
     expect(session).toMatchObject({ installationId: 42, accountLogin: "octocat" });
     expect(response.headers.get("location")).toBe("http://localhost:3000/");
     expect(response.headers.get("location")).not.toContain("missing_installation");

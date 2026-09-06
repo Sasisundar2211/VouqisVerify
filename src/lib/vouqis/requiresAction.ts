@@ -35,7 +35,11 @@ export function computeRequiresAction(pr: ClassifiedPullRequest): RequiresAction
       if (classificationNeedsReview) {
         return { requiresAction: true, label: "YES — classification review required" };
       }
-      if (classification.confidence === "HIGH" || classification.confidence === "MEDIUM") {
+      if (
+        classification.category === "NONE" ||
+        classification.confidence === "HIGH" ||
+        classification.confidence === "MEDIUM"
+      ) {
         return { requiresAction: false, label: "NO" };
       }
       return { requiresAction: true, label: "YES — review required" };

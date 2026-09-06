@@ -80,3 +80,25 @@ export async function verifyUserInstallationAccess(
     if (data.installations.length < 100) return null;
   }
 }
+
+/** Finds this GitHub App's first installation that the authorized user can access. */
+export async function findUserAppInstallation(
+  userToken: string,
+): Promise<{ installationId: number; accountLogin: string } | null> {
+  const octokit = new Octokit({ auth: userToken });
+  const appId = requireEnv("GITHUB_APP_ID");
+
+  for (let page = 1; ; page += 1) {
+    const { data } = await octokit.rest.apps.listInstallationsForAuthenticatedUser({
+      per_page: 100,
+      page,
+    });
+    const installation = data.installations.find((candidate) => String(candidate.app_id) === appId);
+    if (installation) {
+      const accountLogin =
+        installation.account && "login" in installation.account ? installation.account.login : "unknown";
+      return { installationId: installation.id, accountLogin };
+    }
+    if (data.installations.length < 100) return null;
+  }
+}

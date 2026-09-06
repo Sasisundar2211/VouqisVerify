@@ -10,6 +10,20 @@ describe("computeRequiresAction", () => {
     expect(result).toEqual({ requiresAction: false, label: "NO" });
   });
 
+  it("does not require action for checks-passed, not-AI-related PRs", () => {
+    const result = computeRequiresAction(
+      classifiedPr({
+        evidence: { status: "CHECKS_PASSED", summary: "2 passed", checkNames: [] },
+        classification: {
+          category: "NONE",
+          confidence: "NONE",
+          reason: "No AI-change signals found",
+        },
+      }),
+    );
+    expect(result).toEqual({ requiresAction: false, label: "NO" });
+  });
+
   it("requires action when checks failed", () => {
     const result = computeRequiresAction(
       classifiedPr({ evidence: { status: "CHECKS_FAILED", summary: "1 failed", checkNames: [] } }),

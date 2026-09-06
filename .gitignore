@@ -25,6 +25,15 @@
 *.pem
 /awesome-codex-skills/
 
+# local agent/tool state and scratch output — never ship to a public repo
+/.claude/
+/.claude-flow/
+/.impeccable/
+/.pnpm-store/
+/.serena/
+/.tmp-fixture-repo/
+/outputs/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
@@ -33,6 +42,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel

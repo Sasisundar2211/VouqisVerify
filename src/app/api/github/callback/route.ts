@@ -1,12 +1,22 @@
 import { NextResponse } from "next/server";
-import { exchangeGithubOauthCode, verifyUserInstallationAccess } from "@/lib/github/client";
-import { getAppHome, redirectWithGithubConnectionError } from "@/lib/github/connection";
+import {
+  exchangeGithubOauthCode,
+  findUserAppInstallation,
+  verifyUserInstallationAccess,
+} from "@/lib/github/client";
+import {
+  createGithubStateNonce,
+  getAppHome,
+  redirectWithGithubConnectionError,
+} from "@/lib/github/connection";
 import {
   clearGithubConnectionCookies,
   consumeOauthStateCookie,
   consumePendingInstallationCookie,
+  setInstallStateCookie,
   setSessionCookie,
 } from "@/lib/github/session";
+import { isValidGithubAppSlug } from "@/lib/github/validate";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -16,19 +26,37 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   if (!code) return redirectWithGithubConnectionError(request, "missing_code");
 
-  const installationId = await consumePendingInstallationCookie();
-  if (!installationId) return redirectWithGithubConnectionError(request, "missing_installation");
-
   try {
     const redirectUri = `${getAppHome(request)}/api/github/callback`;
     const userToken = await exchangeGithubOauthCode(code, redirectUri);
-    const installation = await verifyUserInstallationAccess(userToken, installationId);
-    if (!installation) {
-      return redirectWithGithubConnectionError(request, "unauthorized_installation");
+    const pendingInstallationId = await consumePendingInstallationCookie();
+    let installation: { installationId: number; accountLogin: string } | null;
+
+    if (pendingInstallationId) {
+      const verified = await verifyUserInstallationAccess(userToken, pendingInstallationId);
+      installation = verified
+        ? { installationId: pendingInstallationId, accountLogin: verified.accountLogin }
+        : null;
+      if (!installation) {
+        return redirectWithGithubConnectionError(request, "unauthorized_installation");
+      }
+    } else {
+      installation = await findUserAppInstallation(userToken);
+      if (!installation) {
+        const appSlug = process.env.GITHUB_APP_SLUG;
+        if (!appSlug || !isValidGithubAppSlug(appSlug)) {
+          return redirectWithGithubConnectionError(request, "github_authorization_failed");
+        }
+        const installState = createGithubStateNonce();
+        await setInstallStateCookie(installState);
+        const installUrl = new URL(`https://github.com/apps/${appSlug}/installations/new`);
+        installUrl.searchParams.set("state", installState);
+        return NextResponse.redirect(installUrl);
+      }
     }
 
     await setSessionCookie({
-      installationId,
+      installationId: installation.installationId,
       accountLogin: installation.accountLogin,
       connectedAt: new Date().toISOString(),
     });
