@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vouqis Verify (VouqisVerify)
 
-## Getting Started
+Vouqis Verify generates AI Change Evidence Packs from merged GitHub pull requests. Engineering teams can identify changes to prompts, model configuration, retrieval and access, and tool permissions, then export GitHub checks, commit statuses, and reviewer evidence to Excel and CSV.
 
-First, run the development server:
+This is the [VouqisVerify application repository](https://github.com/Sasisundar2211/VouqisVerify), maintained by [Sasi Sundar](https://github.com/Sasisundar2211).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
+## What does Vouqis Verify do?
+
+- Connects to repositories through a GitHub App.
+- Retrieves merged pull requests for a selected date range.
+- Classifies AI-related changes using titles and changed file paths.
+- Collects check runs, commit statuses, and pull request reviews.
+- Exports an Excel evidence workbook and a raw CSV file.
+
+## What is in the evidence pack?
+
+| Excel sheet | Contents |
+| --- | --- |
+| Evidence Summary | Repository, date range, category totals, and verification totals |
+| PR Evidence | Classifications, reviewer evidence, check summaries, and required actions |
+| Verification Detail | Individual check runs, commit statuses, and review records |
+
+Review approvals and CI checks are separate evidence sources. `NO_CHECKS_FOUND` is distinct from `CHECKS_PASSED`: missing checks do not establish successful verification.
+
+The evidence pack does not certify that an AI system is safe, compliant, approved, or audit-ready. Classification uses rules; reviewers should inspect the underlying changes and evidence.
+
+## Run locally
+
+The application uses Next.js App Router, React, TypeScript, Octokit, and ExcelJS. Use the pnpm version pinned in `package.json`.
+
+Create `.env.local` using `.env.example` as a starting point. Configure `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_CLIENT_SECRET`, `GITHUB_APP_SLUG`, `SESSION_SECRET`, and `NEXT_PUBLIC_APP_URL`.
+
+Use the GitHub App PEM private key and a separate randomly generated session secret. Keep credentials out of Git and public issues.
+
+For local development, set the App callback URL to `http://localhost:3000/api/github/callback` and the setup URL to `http://localhost:3000/api/github/setup`. Install the App on the repositories you intend to inspect, with read permissions for metadata, pull requests, checks, and commit statuses.
+
+```sh
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [localhost:3000](http://localhost:3000), connect GitHub, select a repository and date range, and generate an evidence pack. Use a separate disposable repository for synthetic test pull requests.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Development checks
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```sh
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+```
 
-## Learn More
+## Questions and feedback
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Report bugs and request features through [VouqisVerify issues](https://github.com/Sasisundar2211/VouqisVerify/issues). Include reproduction steps and remove credentials or private repository data before submitting.
