@@ -4,6 +4,7 @@ import argparse
 import fnmatch
 import html
 import json
+import re
 import shlex
 import subprocess
 import sys
@@ -70,15 +71,20 @@ def safe_output(value: str, limit: int = 20_000) -> str:
     return html.escape(value).replace("@", "&#64;")
 
 
+def inline_code(value: str) -> str:
+    ticks = "`" * (max((len(run) for run in re.findall(r"`+", value)), default=0) + 1)
+    return f"{ticks} {value} {ticks}"
+
+
 def report(status: str, files: list[str], command: tuple[str, ...], output: str = "") -> str:
     visible_files = files[:200]
-    file_lines = "\n".join(f"- <code>{safe_output(file)}</code>" for file in visible_files) or "- None"
+    file_lines = "\n".join(f"- {inline_code(file)}" for file in visible_files) or "- None"
     if len(files) > len(visible_files):
         file_lines += f"\n- ... and {len(files) - len(visible_files)} more"
     details = ""
     if output:
         details = f"\n<details><summary>Evaluation output</summary>\n\n<pre>{safe_output(output)}</pre>\n</details>\n"
-    command_line = f"**Evaluation command:** <code>{safe_output(shlex.join(command))}</code>\n" if command else ""
+    command_line = f"**Evaluation command:** {inline_code(shlex.join(command))}\n" if command else ""
     return (
         "<!-- vouqis-verify-report -->\n"
         f"## Vouqis Verify: {status}\n\n"

@@ -3,10 +3,17 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
+from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
-from vouqis_verify.cli import affected_files, load_config, main, safe_output
+from vouqis_verify.cli import affected_files, inline_code, load_config, main, safe_output
+
+
+def call_main(args):
+    with redirect_stdout(StringIO()), redirect_stderr(StringIO()):
+        return main(args)
 
 
 class VouqisVerifyTests(unittest.TestCase):
@@ -15,6 +22,7 @@ class VouqisVerifyTests(unittest.TestCase):
         self.assertNotIn("<script>", output)
         self.assertNotIn("@team", output)
         self.assertIn("&lt;script&gt;", output)
+        self.assertEqual(inline_code("a`b"), "`` a`b ``")
 
     def test_real_git_diff_runs_evaluator_for_deleted_prompt(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -33,7 +41,7 @@ class VouqisVerifyTests(unittest.TestCase):
             prompt.unlink()
             subprocess.run(["git", "add", "-A"], cwd=root, check=True)
             subprocess.run([*commit, "remove prompt"], cwd=root, check=True)
-            self.assertEqual(main(["--repo", str(root)]), 0)
+            self.assertEqual(call_main(["--repo", str(root)]), 0)
             body = (root / "vouqis-verify-report.md").read_text(encoding="utf-8")
             self.assertIn("PASSED", body)
             self.assertIn("prompts/system.md", body)
@@ -56,7 +64,7 @@ class VouqisVerifyTests(unittest.TestCase):
     def test_configuration_error_still_writes_review_report(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            self.assertEqual(main(["--repo", str(root)]), 2)
+            self.assertEqual(call_main(["--repo", str(root)]), 2)
             body = (root / "vouqis-verify-report.md").read_text(encoding="utf-8")
             self.assertIn("ERROR", body)
             self.assertIn("could not read", body)
@@ -69,7 +77,7 @@ class VouqisVerifyTests(unittest.TestCase):
             config = root / "config.json"
             output = root / "report.md"
             config.write_text(json.dumps({"paths": ["prompts"], "command": ["pytest"]}), encoding="utf-8")
-            self.assertEqual(main(["--repo", str(root), "--config", str(config), "--report", str(output)]), 0)
+            self.assertEqual(call_main(["--repo", str(root), "--config", str(config), "--report", str(output)]), 0)
             run.assert_not_called()
             self.assertIn("SKIPPED", output.read_text(encoding="utf-8"))
 
@@ -82,7 +90,7 @@ class VouqisVerifyTests(unittest.TestCase):
             config = root / "config.json"
             output = root / "report.md"
             config.write_text(json.dumps({"paths": ["prompts"], "command": ["pytest"]}), encoding="utf-8")
-            self.assertEqual(main(["--repo", str(root), "--config", str(config), "--report", str(output)]), 1)
+            self.assertEqual(call_main(["--repo", str(root), "--config", str(config), "--report", str(output)]), 1)
             body = output.read_text(encoding="utf-8")
             self.assertIn("FAILED", body)
             self.assertIn("1 failed", body)
