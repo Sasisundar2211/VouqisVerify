@@ -39,4 +39,11 @@ describe("GET /api/github/connect", () => {
       "https://vouqis.example.com/api/github/callback",
     );
   });
+
+  it("uses the request origin when the configured app URL is blank", async () => {
+    process.env.NEXT_PUBLIC_APP_URL = " ";
+    const response = await GET(new Request("https://vouqis.example.com/api/github/connect"));
+    const location = new URL(response.headers.get("location")!);
+    expect(location.searchParams.get("redirect_uri")).toBe("https://vouqis.example.com/api/github/callback");
+  });
 });

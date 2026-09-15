@@ -8,7 +8,7 @@ from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
-from vouqis_verify.cli import affected_files, inline_code, load_config, main, safe_output
+from vouqis_verify.cli import affected_files, changed_files, inline_code, load_config, main, safe_output
 
 
 def call_main(args):
@@ -38,6 +38,7 @@ class VouqisVerifyTests(unittest.TestCase):
             subprocess.run(["git", "add", "."], cwd=root, check=True)
             commit = ["git", "-c", "user.name=Vouqis Test", "-c", "user.email=test@example.invalid", "commit", "-qm"]
             subprocess.run([*commit, "initial"], cwd=root, check=True)
+            self.assertIn("prompts/system.md", changed_files(root, "0" * 40, "HEAD"))
             prompt.unlink()
             subprocess.run(["git", "add", "-A"], cwd=root, check=True)
             subprocess.run([*commit, "remove prompt"], cwd=root, check=True)
@@ -84,7 +85,12 @@ class VouqisVerifyTests(unittest.TestCase):
     @patch("vouqis_verify.cli.changed_files", return_value=["prompts/system.md"])
     @patch("vouqis_verify.cli.subprocess.run")
     def test_returns_evaluator_failure_and_writes_report(self, run, _changed):
-        run.return_value = subprocess.CompletedProcess(["pytest"], 1, "1 failed", "")
+        def fail(command, **kwargs):
+            self.assertFalse(kwargs["shell"])
+            kwargs["stdout"].write("1 failed\n" + "x" * 30_000)
+            return subprocess.CompletedProcess(command, 1)
+
+        run.side_effect = fail
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             config = root / "config.json"
@@ -94,6 +100,8 @@ class VouqisVerifyTests(unittest.TestCase):
             body = output.read_text(encoding="utf-8")
             self.assertIn("FAILED", body)
             self.assertIn("1 failed", body)
+            self.assertIn("output truncated", body)
+            self.assertLess(len(body), 21_000)
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ import re
 import shlex
 import subprocess
 import sys
+from tempfile import TemporaryFile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -38,10 +39,15 @@ def load_config(path: Path) -> Config:
 
 
 def changed_files(repo: Path, base: str, head: str) -> list[str]:
-    if base.startswith("-") or head.startswith("-"):
-        raise ValueError("Git refs cannot start with '-'")
+    if not base or not head or base.startswith("-") or head.startswith("-"):
+        raise ValueError("Git refs must be non-empty and cannot start with '-'")
+    command = (
+        ["git", "ls-tree", "-r", "--name-only", "-z", head]
+        if set(base) == {"0"}
+        else ["git", "diff", "--name-only", "--no-renames", "-z", f"{base}...{head}", "--"]
+    )
     result = subprocess.run(
-        ["git", "diff", "--name-only", "--no-renames", "-z", f"{base}...{head}", "--"],
+        command,
         cwd=repo,
         capture_output=True,
         text=True,
@@ -117,16 +123,18 @@ def main(argv: list[str] | None = None) -> int:
             exit_code = 0
         else:
             try:
-                # ponytail: capture logs in memory; stream to a file if evaluators emit very large output.
-                result = subprocess.run(
-                    config.command,
-                    cwd=args.repo,
-                    capture_output=True,
-                    text=True,
-                    encoding="utf-8",
-                    errors="replace",
-                )
-                output = "\n".join(part for part in (result.stdout.strip(), result.stderr.strip()) if part)
+                # Repository-owned executable args are intentional; never interpret them through a shell.
+                # ponytail: temporary log uses disk; use a draining bounded reader for multi-GB evaluators.
+                with TemporaryFile(mode="w+", encoding="utf-8", errors="replace") as log:
+                    result = subprocess.run(
+                        config.command,
+                        cwd=args.repo,
+                        stdout=log,
+                        stderr=subprocess.STDOUT,
+                        shell=False,
+                    )
+                    log.seek(0)
+                    output = log.read(20_001)
                 exit_code = result.returncode
             except OSError as error:
                 output = str(error)

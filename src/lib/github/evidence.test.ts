@@ -37,6 +37,7 @@ describe("evaluateEvidence", () => {
     (conclusion) => {
       const result = evaluateEvidence([checkRun({ conclusion })], []);
       expect(result.status).toBe("NEEDS_HUMAN_REVIEW");
+      expect(result.summary).toContain("0 pending, 1 inconclusive");
     },
   );
 

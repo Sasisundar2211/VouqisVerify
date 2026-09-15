@@ -10,7 +10,7 @@ export function getAppHome(request: Request): string {
   const requestUrl = new URL(request.url);
   return ["localhost", "127.0.0.1", "[::1]"].includes(requestUrl.hostname)
     ? requestUrl.origin
-    : (process.env.NEXT_PUBLIC_APP_URL ?? requestUrl.origin);
+    : (process.env.NEXT_PUBLIC_APP_URL?.trim() || requestUrl.origin);
 }
 
 export async function redirectWithGithubConnectionError(

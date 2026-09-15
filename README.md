@@ -46,6 +46,10 @@ name: Vouqis Verify
 on:
   pull_request:
 
+concurrency:
+  group: vouqis-verify-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   pull-requests: write
@@ -57,13 +61,14 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
       # Install your evaluator's dependencies before running Vouqis.
       - uses: Sasisundar2211/VouqisVerify@main
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-Use a version tag instead of `main` once the first release is available. The Action uses the runner's current Python environment and updates one Vouqis comment instead of adding a new comment on every commit. Make the workflow a required check if you want failed evaluations to block merges. Evaluation output is included in the report; never print secrets from your evaluator.
+Use a version tag instead of `main` once the first release is available. The Action uses the runner's current Python environment. Concurrency prevents overlapping runs from creating duplicate comments. Make the workflow a required check if you want failed evaluations to block merges. Evaluation output is included in the report; never print secrets from your evaluator. Omit `github-token` when executing untrusted contributions; the report and evaluation status still work without commenting.
 
 ## Dashboard
 
@@ -76,6 +81,8 @@ pnpm install
 pnpm dev
 ```
 
+Configure the GitHub App callback URL as `http://localhost:3000/api/github/callback` and setup URL as `http://localhost:3000/api/github/setup`. Give it read permissions for metadata, pull requests, checks, and commit statuses. Use your deployed origin for production URLs.
+
 ## Development checks
 
 ```sh
@@ -83,6 +90,7 @@ python -m unittest discover -s tests
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm exec playwright install --with-deps chrome
 pnpm exec playwright test
 pnpm build
 ```

@@ -45,8 +45,9 @@ runs:
         REPORT_INPUT: ${{ inputs.report }}
         PR_BASE: ${{ github.event.pull_request.base.sha }}
         PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        PUSH_BASE: ${{ github.event_name == 'push' && github.event.before || '' }}
       run: |
-        base="${BASE_INPUT:-${PR_BASE:-HEAD^}}"
+        base="${BASE_INPUT:-${PR_BASE:-${PUSH_BASE:-HEAD^}}}"
         head="${HEAD_INPUT:-${PR_HEAD:-HEAD}}"
         report_path="$GITHUB_WORKSPACE/$REPORT_INPUT"
         set +e
@@ -81,7 +82,7 @@ runs:
             issue_number: context.issue.number,
             per_page: 100,
           });
-          const previous = comments.find((comment) => comment.user?.type === "Bot" && comment.body?.includes(marker));
+          const previous = comments.find((comment) => comment.body?.startsWith(marker));
           if (previous) {
             await github.rest.issues.updateComment({
               owner: context.repo.owner,
