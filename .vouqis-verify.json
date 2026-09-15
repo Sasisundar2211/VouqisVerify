@@ -1,0 +1,4 @@
+{
+  "paths": ["vouqis_verify", "tests", "action.yml", ".github/workflows"],
+  "command": ["python", "-m", "unittest", "discover", "-s", "tests"]
+}

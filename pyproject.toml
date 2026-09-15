@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vouqis-verify"
+version = "0.1.0"
+description = "CI verification for AI-generated code and AI pipeline changes"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Sasi Sundar" }]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Software Development :: Testing",
+]
+
+[project.urls]
+Homepage = "https://github.com/Sasisundar2211/VouqisVerify"
+Issues = "https://github.com/Sasisundar2211/VouqisVerify/issues"
+
+[project.scripts]
+vouqis-verify = "vouqis_verify.cli:main"
+
+[tool.setuptools]
+packages = ["vouqis_verify"]

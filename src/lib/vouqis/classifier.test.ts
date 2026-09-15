@@ -83,7 +83,7 @@ describe("classifyPullRequest", () => {
     expect(result.confidence).toBe("NONE");
   });
 
-  it("classifies based on keywords found only in the PR body", () => {
+  it("ignores AI keywords found only in the PR body", () => {
     const result = classifyPullRequest(
       pr({
         title: "Housekeeping",
@@ -91,7 +91,17 @@ describe("classifyPullRequest", () => {
         changedFiles: ["src/lib/summarize.ts"],
       }),
     );
-    expect(result.category).toBe("MODEL_CONFIGURATION");
+    expect(result.category).toBe("NONE");
+  });
+
+  it("does not classify a generic schema without tool or agent context", () => {
+    const result = classifyPullRequest(
+      pr({
+        title: "Add customer database table",
+        changedFiles: ["db/schema/users.json"],
+      }),
+    );
+    expect(result.category).toBe("NONE");
   });
 
   it("flags conflicting equal-strength signals for manual review", () => {

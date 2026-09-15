@@ -91,8 +91,8 @@ describe("buildEvidenceWorkbook", () => {
     const sheet = workbook.getWorksheet(EVIDENCE_SUMMARY_SHEET)!;
     const values = sheet.getSheetValues().flat();
     expect(values).toContain(
-      "This evidence pack identifies AI-relevant GitHub pull requests and associated review and " +
-        "verification evidence. It does not certify that an AI system is safe, compliant, approved, or audit-ready.",
+      "This pack documents identified AI-relevant code changes and associated GitHub review and " +
+        "verification evidence. It is not a statement that the AI system is safe, compliant, or approved by an auditor.",
     );
   });
 

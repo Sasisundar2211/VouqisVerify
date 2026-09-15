@@ -1,5 +1,7 @@
 # Vouqis Verify — MVP Design Spec
 
+> Historical design. Superseded by `project.md`; retained only for decision history.
+
 Status: draft, awaiting approval
 Date: 2026-08-24
 

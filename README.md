@@ -1,55 +1,100 @@
-# Vouqis Verify (VouqisVerify)
+# Vouqis Verify
 
-Vouqis Verify generates AI Change Evidence Packs from merged GitHub pull requests. Engineering teams can identify changes to prompts, model configuration, retrieval and access, and tool permissions, then export GitHub checks, commit statuses, and reviewer evidence to Excel and CSV.
+Most AI demos work once. Vouqis Verify checks whether they still work after the next change.
 
-This is the [VouqisVerify application repository](https://github.com/Sasisundar2211/VouqisVerify), maintained by [Sasi Sundar](https://github.com/Sasisundar2211).
+Vouqis Verify is CI tooling for AI-generated code and AI pipelines. It detects changes on configured AI paths, runs the repository's existing evaluation command, writes a review-ready Markdown report, and posts or updates that report on the pull request.
 
-## What does Vouqis Verify do?
+The repository contains three connected surfaces:
 
-- Connects to repositories through a GitHub App.
-- Retrieves merged pull requests for a selected date range.
-- Classifies AI-related changes using titles and changed file paths.
-- Collects check runs, commit statuses, and pull request reviews.
-- Exports an Excel evidence workbook and a raw CSV file.
+- A dependency-free Python CLI for local and CI verification.
+- A composite GitHub Action for pull-request reporting and result enforcement.
+- A typed Next.js dashboard for reviewing merged AI-related PRs and their GitHub check/review evidence.
 
-## What is in the evidence pack?
+## Quick start
 
-| Excel sheet | Contents |
-| --- | --- |
-| Evidence Summary | Repository, date range, category totals, and verification totals |
-| PR Evidence | Classifications, reviewer evidence, check summaries, and required actions |
-| Verification Detail | Individual check runs, commit statuses, and review records |
+Create `.vouqis-verify.json` in the repository you want to verify:
 
-Review approvals and CI checks are separate evidence sources. `NO_CHECKS_FOUND` is distinct from `CHECKS_PASSED`: missing checks do not establish successful verification.
+```json
+{
+  "paths": ["prompts", "src/ai", "evals"],
+  "command": ["python", "-m", "pytest", "evals"]
+}
+```
 
-The evidence pack does not certify that an AI system is safe, compliant, approved, or audit-ready. Classification uses rules; reviewers should inspect the underlying changes and evidence.
+The command is an argument array, not a shell string. Vouqis runs whatever evaluation suite your project already trusts.
 
-## Run locally
+Install and run the CLI:
 
-The application uses Next.js App Router, React, TypeScript, Octokit, and ExcelJS. Use the pnpm version pinned in `package.json`.
+```sh
+python -m pip install vouqis-verify
+vouqis-verify --base main --head HEAD
+```
 
-Create `.env.local` using `.env.example` as a starting point. Configure `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, `GITHUB_APP_CLIENT_ID`, `GITHUB_APP_CLIENT_SECRET`, `GITHUB_APP_SLUG`, `SESSION_SECRET`, and `NEXT_PUBLIC_APP_URL`.
+Until the first PyPI release is published, install directly from GitHub:
 
-Use the GitHub App PEM private key and a separate randomly generated session secret. Keep credentials out of Git and public issues.
+```sh
+python -m pip install git+https://github.com/Sasisundar2211/VouqisVerify.git
+```
 
-For local development, set the App callback URL to `http://localhost:3000/api/github/callback` and the setup URL to `http://localhost:3000/api/github/setup`. Install the App on the repositories you intend to inspect, with read permissions for metadata, pull requests, checks, and commit statuses.
+The default report is `vouqis-verify-report.md`. The exit code is `0` when no configured paths changed or the evaluation passed, the evaluator's non-zero code when it failed, and `2` for configuration or Git errors.
+
+## GitHub Action
+
+```yaml
+name: Vouqis Verify
+
+on:
+  pull_request:
+
+concurrency:
+  group: vouqis-verify-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # Install your evaluator's dependencies before running Vouqis.
+      - uses: Sasisundar2211/VouqisVerify@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+Use a version tag instead of `main` once the first release is available. The Action uses the runner's current Python environment. Concurrency prevents overlapping runs from creating duplicate comments. Make the workflow a required check if you want failed evaluations to block merges. Evaluation output is included in the report; never print secrets from your evaluator. Omit `github-token` when executing untrusted contributions; the report and evaluation status still work without commenting.
+
+## Dashboard
+
+The dashboard connects through a read-only GitHub App, retrieves merged pull requests for a date range, classifies AI-related changes from titles and file paths, and collects check runs, commit statuses, and reviews. Vouqis Action runs appear in that GitHub-native evidence. Reports export to Excel and CSV.
+
+Create `.env.local` from `.env.example`, then run:
 
 ```sh
 pnpm install
 pnpm dev
 ```
 
-Open [localhost:3000](http://localhost:3000), connect GitHub, select a repository and date range, and generate an evidence pack. Use a separate disposable repository for synthetic test pull requests.
+Configure the GitHub App callback URL as `http://localhost:3000/api/github/callback` and setup URL as `http://localhost:3000/api/github/setup`. Give it read permissions for metadata, pull requests, checks, and commit statuses. Use your deployed origin for production URLs.
 
 ## Development checks
 
 ```sh
+python -m unittest discover -s tests
 pnpm lint
 pnpm typecheck
 pnpm test
+pnpm exec playwright install --with-deps chrome
+pnpm exec playwright test
 pnpm build
 ```
 
-## Questions and feedback
+Vouqis Verify reports whether the configured evaluation ran and passed. It does not certify that an AI system is safe, compliant, or correct.
 
-Report bugs and request features through [VouqisVerify issues](https://github.com/Sasisundar2211/VouqisVerify/issues). Include reproduction steps and remove credentials or private repository data before submitting.
+Licensed under Apache-2.0. Report bugs through [GitHub issues](https://github.com/Sasisundar2211/VouqisVerify/issues).

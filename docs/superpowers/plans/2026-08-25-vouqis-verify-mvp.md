@@ -1,5 +1,7 @@
 # Vouqis Verify MVP Implementation Plan
 
+> Historical plan. Superseded by `project.md`; retained only for decision history.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build the single-operator Vouqis Verify MVP — import merged GitHub PRs for one repository, classify AI-relevant changes with rules + human review, and export an AI Change Evidence Pack.

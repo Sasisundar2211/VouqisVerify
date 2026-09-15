@@ -5,7 +5,11 @@
 // it runs the same way in a Node API route as it would in a unit test.
 
 import ExcelJS from "exceljs";
-import { buildEvidencePackFilename, type EvidencePackMeta } from "./csv";
+import {
+  buildEvidencePackFilename,
+  EVIDENCE_PACK_DISCLAIMER,
+  type EvidencePackMeta,
+} from "./csv";
 import { summarize } from "./filters";
 import { computeRequiresAction } from "./requiresAction";
 import {
@@ -19,10 +23,6 @@ import {
 export const EVIDENCE_SUMMARY_SHEET = "Evidence Summary";
 export const PR_EVIDENCE_SHEET = "PR Evidence";
 export const VERIFICATION_DETAIL_SHEET = "Verification Detail";
-
-const DISCLAIMER =
-  "This evidence pack identifies AI-relevant GitHub pull requests and associated review and " +
-  "verification evidence. It does not certify that an AI system is safe, compliant, approved, or audit-ready.";
 
 const REVIEW_DISTINCTION_NOTE =
   "Classification review identifies pull requests whose AI-change category is ambiguous. " +
@@ -118,7 +118,7 @@ function buildEvidenceSummarySheet(
   distinctionRow.height = 36;
   sheet.addRow([]);
 
-  const disclaimerRow = sheet.addRow([DISCLAIMER]);
+  const disclaimerRow = sheet.addRow([EVIDENCE_PACK_DISCLAIMER]);
   disclaimerRow.getCell(1).font = { italic: true };
   disclaimerRow.getCell(1).alignment = { wrapText: true, vertical: "top" };
   sheet.mergeCells(disclaimerRow.number, 1, disclaimerRow.number, 2);

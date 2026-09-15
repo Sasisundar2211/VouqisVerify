@@ -35,15 +35,24 @@ export function evaluateEvidence(checkRuns: CheckRun[], statuses: CommitStatus[]
     checkRuns.filter((c) => c.conclusion === "success" || c.conclusion === "neutral").length +
     statuses.filter((s) => s.state === "success").length;
   const pendingStatuses = statuses.filter((s) => s.state === "pending").length;
+  const inconclusive = checkRuns.filter(
+    (c) =>
+      c.status === "completed" &&
+      c.conclusion !== "success" &&
+      c.conclusion !== "neutral" &&
+      c.conclusion !== "failure" &&
+      c.conclusion !== "timed_out",
+  ).length;
   const totalPending = pending + pendingStatuses;
 
-  const summary = `${succeeded} passed, ${failed} failed, ${totalPending} pending`;
+  const summary = `${succeeded} passed, ${failed} failed, ${totalPending} pending` +
+    (inconclusive > 0 ? `, ${inconclusive} inconclusive` : "");
 
   if (failed > 0) {
     return { status: "CHECKS_FAILED", summary, checkNames };
   }
-  if (totalPending > 0) {
-    return { status: "NEEDS_HUMAN_REVIEW", summary: `${summary} — retrieved before all checks finished.`, checkNames };
+  if (totalPending > 0 || inconclusive > 0) {
+    return { status: "NEEDS_HUMAN_REVIEW", summary: `${summary} — checks are unfinished or inconclusive.`, checkNames };
   }
   return { status: "CHECKS_PASSED", summary, checkNames };
 }

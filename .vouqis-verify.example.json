@@ -1,0 +1,13 @@
+{
+  "paths": [
+    "prompts",
+    "src/ai",
+    "evals"
+  ],
+  "command": [
+    "python",
+    "-m",
+    "pytest",
+    "evals"
+  ]
+}
