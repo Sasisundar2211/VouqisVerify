@@ -1,0 +1,104 @@
+name: Vouqis Verify
+description: Run configured AI evaluations when relevant files change and report the result on a pull request.
+author: Sasi Sundar
+
+branding:
+  icon: check-circle
+  color: purple
+
+inputs:
+  config:
+    description: Path to the Vouqis Verify JSON config in the checked-out repository.
+    default: .vouqis-verify.json
+  base:
+    description: Base Git ref. Defaults to the pull request base SHA, then HEAD^.
+    required: false
+  head:
+    description: Head Git ref. Defaults to the pull request head SHA, then HEAD.
+    required: false
+  github-token:
+    description: GitHub token used to create or update the pull request comment.
+    required: false
+  report:
+    description: Report path relative to the checked-out repository.
+    default: vouqis-verify-report.md
+
+outputs:
+  report:
+    description: Absolute path to the generated Markdown report.
+    value: ${{ steps.verify.outputs.report_path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install Vouqis Verify
+      shell: bash
+      run: python -m pip install --disable-pip-version-check "${{ github.action_path }}"
+
+    - name: Run verification
+      id: verify
+      shell: bash
+      env:
+        BASE_INPUT: ${{ inputs.base }}
+        HEAD_INPUT: ${{ inputs.head }}
+        CONFIG_INPUT: ${{ inputs.config }}
+        REPORT_INPUT: ${{ inputs.report }}
+        PR_BASE: ${{ github.event.pull_request.base.sha }}
+        PR_HEAD: ${{ github.event.pull_request.head.sha }}
+      run: |
+        base="${BASE_INPUT:-${PR_BASE:-HEAD^}}"
+        head="${HEAD_INPUT:-${PR_HEAD:-HEAD}}"
+        report_path="$GITHUB_WORKSPACE/$REPORT_INPUT"
+        set +e
+        vouqis-verify \
+          --repo "$GITHUB_WORKSPACE" \
+          --config "$GITHUB_WORKSPACE/$CONFIG_INPUT" \
+          --base "$base" \
+          --head "$head" \
+          --report "$report_path"
+        exit_code=$?
+        set -e
+        echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+        echo "report_path=$report_path" >> "$GITHUB_OUTPUT"
+
+    - name: Comment on pull request
+      if: github.event_name == 'pull_request' && inputs.github-token != ''
+      continue-on-error: true
+      uses: actions/github-script@v9
+      env:
+        REPORT_PATH: ${{ steps.verify.outputs.report_path }}
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const fs = require("fs");
+          const marker = "<!-- vouqis-verify-report -->";
+          const fullReport = fs.readFileSync(process.env.REPORT_PATH, "utf8");
+          // ponytail: cap comments at 60k; upload the report artifact if pilots need longer output.
+          const body = fullReport.length > 60000 ? fullReport.slice(0, 60000) + "\n\nReport truncated. See the workflow log." : fullReport;
+          const comments = await github.paginate(github.rest.issues.listComments, {
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            per_page: 100,
+          });
+          const previous = comments.find((comment) => comment.user?.type === "Bot" && comment.body?.includes(marker));
+          if (previous) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: previous.id,
+              body,
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+          }
+
+    - name: Enforce evaluation result
+      if: steps.verify.outputs.exit_code != '0'
+      shell: bash
+      run: exit "${{ steps.verify.outputs.exit_code }}"

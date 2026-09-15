@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+/playwright-report/
+/test-results/
 
 # next.js
 /.next/
@@ -19,6 +21,15 @@
 
 # production
 /build
+/dist
+/*.egg-info
+
+# python
+__pycache__/
+*.py[cod]
+
+# Vouqis CLI output
+/vouqis-verify-report.md
 
 # misc
 .DS_Store

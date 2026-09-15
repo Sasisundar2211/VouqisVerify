@@ -75,10 +75,10 @@ const KEYWORDS: Record<Exclude<Category, "NONE" | "NEEDS_HUMAN_REVIEW">, string[
     "tool_registry",
     "tool-registry",
     "mcp",
-    "schema",
-    "schemas",
   ],
 };
+
+const TOOL_SCHEMA_CONTEXT = ["tool", "agent", "mcp", "capability", "permission"];
 
 // A dependency manifest/lockfile touched on its own is never a model-config
 // signal, even if a provider name (e.g. "openai") appears in the PR title.
@@ -105,12 +105,19 @@ export function classifyPullRequest(pr: PullRequest): Classification {
     };
   }
 
-  const haystack = `${pr.title} ${pr.body} ${pr.changedFiles.join(" ")}`.toLowerCase();
+  const haystack = `${pr.title} ${pr.changedFiles.join(" ")}`.toLowerCase();
 
   const matches = (Object.keys(KEYWORDS) as Array<keyof typeof KEYWORDS>).map((category) => ({
     category,
     keywords: matchedKeywords(haystack, KEYWORDS[category]),
   }));
+
+  if (
+    haystack.includes("schema") &&
+    TOOL_SCHEMA_CONTEXT.some((keyword) => haystack.includes(keyword))
+  ) {
+    matches.find((match) => match.category === "TOOL_PERMISSION")?.keywords.push("schema");
+  }
 
   const withHits = matches.filter((m) => m.keywords.length > 0);
 

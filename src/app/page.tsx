@@ -15,6 +15,15 @@ import type { ClassifiedPullRequest } from "@/lib/vouqis/types";
 
 type Session = { connected: false } | { connected: true; accountLogin: string };
 
+const CONNECTION_ERRORS: Record<string, string> = {
+  github_authorization_failed: "GitHub authorization failed. Check the GitHub App configuration and try again.",
+  installation_pending_approval: "A GitHub organization owner must approve this installation before it can connect.",
+  invalid_state: "The GitHub connection expired or was already used. Please try again.",
+  missing_code: "GitHub did not return an authorization code. Please try again.",
+  missing_installation: "GitHub did not return an installation. Please try again.",
+  unauthorized_installation: "Your GitHub account cannot access that App installation.",
+};
+
 const DEFAULT_RANGE: DateRange = {
   from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
   to: new Date().toISOString().slice(0, 10),
@@ -33,9 +42,15 @@ export default function Home() {
   const [hasGenerated, setHasGenerated] = useState(false);
 
   useEffect(() => {
+    const connectionError = new URLSearchParams(window.location.search).get("error");
     fetch("/api/github/session")
       .then((res) => res.json())
-      .then(setSession)
+      .then((data) => {
+        setSession(data);
+        if (connectionError) {
+          setError(CONNECTION_ERRORS[connectionError] ?? "Could not connect GitHub. Please try again.");
+        }
+      })
       .catch(() => setSession({ connected: false }));
   }, []);
 
@@ -97,7 +112,7 @@ export default function Home() {
         <div>
           <h1 className="text-2xl font-semibold">Vouqis Verify</h1>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            AI Change Evidence Pack — live, read-only GitHub data
+            AI change verification history — live, read-only GitHub data
           </p>
         </div>
         {session?.connected && (
@@ -111,6 +126,12 @@ export default function Home() {
       </header>
 
       {session === null && <p className="text-sm text-zinc-500 dark:text-zinc-400">Checking GitHub connection…</p>}
+
+      {error && (
+        <p role="alert" className="text-sm font-medium text-red-600 dark:text-red-400">
+          {error}
+        </p>
+      )}
 
       {session?.connected === false && (
         <div className="flex flex-col items-start gap-3 rounded-lg border border-dashed border-black/15 p-8 dark:border-white/15">
@@ -146,11 +167,6 @@ export default function Home() {
             )}
           </div>
 
-          {error && (
-            <p role="alert" className="text-sm font-medium text-red-600 dark:text-red-400">
-              {error}
-            </p>
-          )}
           {downloadError && (
             <p role="alert" className="text-sm font-medium text-red-600 dark:text-red-400">
               {downloadError}

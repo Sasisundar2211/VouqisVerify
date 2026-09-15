@@ -32,6 +32,14 @@ describe("evaluateEvidence", () => {
     expect(result.status).toBe("NEEDS_HUMAN_REVIEW");
   });
 
+  it.each(["cancelled", "action_required", "startup_failure", null])(
+    "never passes a completed check with conclusion %s",
+    (conclusion) => {
+      const result = evaluateEvidence([checkRun({ conclusion })], []);
+      expect(result.status).toBe("NEEDS_HUMAN_REVIEW");
+    },
+  );
+
   it("collects check and status names for the CSV export", () => {
     const result = evaluateEvidence([checkRun({ name: "ci/lint" })], [{ context: "legacy/ci", state: "success" }]);
     expect(result.checkNames).toEqual(["ci/lint", "legacy/ci"]);

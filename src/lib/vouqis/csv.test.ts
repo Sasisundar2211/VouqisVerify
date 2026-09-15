@@ -17,11 +17,11 @@ describe("buildEvidenceCsv", () => {
     expect(lines[1].startsWith('"acme-ai/customer-support-agent"')).toBe(true);
   });
 
-  it("emits the exact 18-column header, ending with Requires Action", () => {
+  it("emits the exact 19-column header, ending with Requires Action", () => {
     const csv = buildEvidenceCsv([], META);
     const header = csv.slice(1).split("\r\n")[0];
     const columns = header.split('","');
-    expect(columns).toHaveLength(18);
+    expect(columns).toHaveLength(19);
     expect(columns.at(-1)).toBe('Requires Action"');
   });
 
@@ -33,6 +33,14 @@ describe("buildEvidenceCsv", () => {
       expect(row).toContain('"2026-06-01"');
       expect(row).toContain('"2026-06-30"');
     }
+  });
+
+  it("includes the exact required disclaimer", () => {
+    const csv = buildEvidenceCsv([classifiedPr({})], META);
+    expect(csv).toContain(
+      "This pack documents identified AI-relevant code changes and associated GitHub review and verification evidence. " +
+        "It is not a statement that the AI system is safe, compliant, or approved by an auditor.",
+    );
   });
 
   it("marks AI-sensitive categories and evidence status distinctly", () => {
@@ -65,6 +73,19 @@ describe("buildEvidenceCsv", () => {
     const csv = buildEvidenceCsv([classifiedPr({ title: 'Add "smart" retry, with backoff' })], META);
     const row = csv.slice(1).split("\r\n")[1];
     expect(row).toContain('"Add ""smart"" retry, with backoff"');
+  });
+
+  it("sanitizes attacker-controlled check names", () => {
+    const csv = buildEvidenceCsv([
+      classifiedPr({
+        evidence: {
+          status: "CHECKS_PASSED",
+          summary: "1 passed",
+          checkNames: ['=HYPERLINK("https://evil.example")'],
+        },
+      }),
+    ], META);
+    expect(csv).toContain('"\'=HYPERLINK(""https://evil.example"")"');
   });
 
   it("returns only the header for an empty (filtered) PR list", () => {
@@ -126,7 +147,7 @@ describe("buildEvidenceCsv", () => {
     const columns = row.slice(1, -1).split('\",\"');
     expect(columns[11]).toBe("NEEDS_HUMAN_REVIEW");
     expect(columns[14]).toBe("NEEDS_HUMAN_REVIEW");
-    expect(columns[17]).toBe("YES — classification and verification evidence review required");
+    expect(columns[18]).toBe("YES — classification and verification evidence review required");
   });
 
   it("exports the classification-specific action reason", () => {

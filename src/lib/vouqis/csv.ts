@@ -24,6 +24,10 @@ export interface EvidencePackMeta {
   to: string;
 }
 
+export const EVIDENCE_PACK_DISCLAIMER =
+  "This pack documents identified AI-relevant code changes and associated GitHub review and " +
+  "verification evidence. It is not a statement that the AI system is safe, compliant, or approved by an auditor.";
+
 const COLUMNS = [
   "Repository",
   "Evidence Pack Generated At",
@@ -42,6 +46,7 @@ const COLUMNS = [
   "Evidence Status",
   "Check Run Summary",
   "Check Run Names",
+  "Disclaimer",
   "Requires Action",
 ] as const;
 
@@ -66,8 +71,9 @@ function toRow(pr: ClassifiedPullRequest, meta: EvidencePackMeta): string[] {
     pr.classification.confidence,
     pr.classification.reason,
     pr.evidence.status,
-    pr.evidence.summary,
-    pr.evidence.checkNames.join("; "),
+    sanitizeForSpreadsheet(pr.evidence.summary),
+    pr.evidence.checkNames.map(sanitizeForSpreadsheet).join("; "),
+    EVIDENCE_PACK_DISCLAIMER,
     computeRequiresAction(pr).label,
   ];
 }

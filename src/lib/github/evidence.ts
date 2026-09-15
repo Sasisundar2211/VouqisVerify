@@ -35,7 +35,15 @@ export function evaluateEvidence(checkRuns: CheckRun[], statuses: CommitStatus[]
     checkRuns.filter((c) => c.conclusion === "success" || c.conclusion === "neutral").length +
     statuses.filter((s) => s.state === "success").length;
   const pendingStatuses = statuses.filter((s) => s.state === "pending").length;
-  const totalPending = pending + pendingStatuses;
+  const inconclusive = checkRuns.filter(
+    (c) =>
+      c.status === "completed" &&
+      c.conclusion !== "success" &&
+      c.conclusion !== "neutral" &&
+      c.conclusion !== "failure" &&
+      c.conclusion !== "timed_out",
+  ).length;
+  const totalPending = pending + pendingStatuses + inconclusive;
 
   const summary = `${succeeded} passed, ${failed} failed, ${totalPending} pending`;
 
