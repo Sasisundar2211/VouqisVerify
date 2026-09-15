@@ -17,15 +17,51 @@ describe("GET /api/github/connect", () => {
   });
 
   it("starts OAuth with a fresh server-stored state", async () => {
-    const response = await GET();
+    const response = await GET(new Request("http://localhost:3001/api/github/connect"));
     const location = new URL(response.headers.get("location")!);
     const state = location.searchParams.get("state");
 
     expect(location.origin + location.pathname).toBe("https://github.com/login/oauth/authorize");
     expect(location.searchParams.get("client_id")).toBe("Iv1.test");
-    expect(location.searchParams.get("redirect_uri")).toBe("http://localhost:3000/api/github/callback");
+    expect(location.searchParams.get("redirect_uri")).toBe("http://localhost:3001/api/github/callback");
     expect(state).toMatch(/^[A-Za-z0-9_-]{40,}$/);
     expect(clearGithubConnectionCookies).toHaveBeenCalledOnce();
     expect(setOauthStateCookie).toHaveBeenCalledWith(state);
+  });
+
+it("uses the configured callback URL away from local development", async () => {
+    process.env.NEXT_PUBLIC_APP_URL = "https://vouqis.example.com";
+
+    const response = await GET(new Request("https://preview.example.com/api/github/connect"));
+    const location = new URL(response.headers.get("location")!);
+
+    expect(location.searchParams.get("redirect_uri")).toBe(
+      "https://vouqis.example.com/api/github/callback",
+    );
+  });
+
+  it("uses the request origin when the configured app URL is blank", async () => {
+    process.env.NEXT_PUBLIC_APP_URL = " ";
+    const response = await GET(new Request("https://vouqis.example.com/api/github/connect"));
+    const location = new URL(response.headers.get("location")!);
+    expect(location.searchParams.get("redirect_uri")).toBe("https://vouqis.example.com/api/github/callback");
+  });
+
+  it("never emits a localhost callback for a public request", async () => {
+    process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
+
+    const response = await GET(new Request("https://vouqis-verify.vercel.app/api/github/connect"));
+    const location = new URL(response.headers.get("location")!);
+
+    expect(location.searchParams.get("redirect_uri")).toBe(
+      "https://vouqis-verify.vercel.app/api/github/callback",
+    );
+  });
+
+  it("uses the request origin when the configured app URL is not a valid URL", async () => {
+    process.env.NEXT_PUBLIC_APP_URL = "not-a-url";
+    const response = await GET(new Request("https://vouqis.example.com/api/github/connect"));
+    const location = new URL(response.headers.get("location")!);
+    expect(location.searchParams.get("redirect_uri")).toBe("https://vouqis.example.com/api/github/callback");
   });
 });
