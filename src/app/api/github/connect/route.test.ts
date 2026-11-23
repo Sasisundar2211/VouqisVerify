@@ -64,4 +64,39 @@ it("uses the configured callback URL away from local development", async () => {
     const location = new URL(response.headers.get("location")!);
     expect(location.searchParams.get("redirect_uri")).toBe("https://vouqis.example.com/api/github/callback");
   });
+
+  it("uses the proxy-forwarded public host when the server sees a loopback URL", async () => {
+    // `next start` behind a reverse proxy reports request.url as localhost:<port>.
+    process.env.NEXT_PUBLIC_APP_URL = " ";
+    const request = new Request("http://localhost:3000/api/github/connect", {
+      headers: { "x-forwarded-host": "vouqis.example.com", "x-forwarded-proto": "https" },
+    });
+    const location = new URL((await GET(request)).headers.get("location")!);
+    expect(location.searchParams.get("redirect_uri")).toBe("https://vouqis.example.com/api/github/callback");
+  });
+
+  it("uses the configured public URL when a self-hosted server sees a loopback URL", async () => {
+    process.env.NEXT_PUBLIC_APP_URL = "https://vouqis.example.com";
+    const request = new Request("http://localhost:3000/api/github/connect", {
+      headers: { host: "vouqis.example.com", "x-forwarded-proto": "https" },
+    });
+    const location = new URL((await GET(request)).headers.get("location")!);
+    expect(location.searchParams.get("redirect_uri")).toBe("https://vouqis.example.com/api/github/callback");
+  });
+
+  it("ignores a malformed forwarded host", async () => {
+    process.env.NEXT_PUBLIC_APP_URL = " ";
+    const request = new Request("https://vouqis.example.com/api/github/connect", {
+      headers: { "x-forwarded-host": "evil.example/@x" },
+    });
+    const location = new URL((await GET(request)).headers.get("location")!);
+    expect(location.searchParams.get("redirect_uri")).toBe("https://vouqis.example.com/api/github/callback");
+  });
+
+  it("returns 500 when the GitHub App client ID is missing", async () => {
+    delete process.env.GITHUB_APP_CLIENT_ID;
+    const response = await GET(new Request("https://vouqis.example.com/api/github/connect"));
+    expect(response.status).toBe(500);
+    expect(setOauthStateCookie).not.toHaveBeenCalled();
+  });
 });
