@@ -1,0 +1,96 @@
+# Verification suite for the reference support agent in agent.py.
+#
+#   vouqis run examples/agent/vouqis.yaml --save-baseline examples/agent/baseline.json
+#   vouqis run examples/agent/vouqis.yaml --baseline examples/agent/baseline.json -T swallow_tool_errors=true
+name: support-agent
+target:
+  callable: agent.py:run
+  timeout_s: 10
+
+defaults:
+  checks:
+    - type: answer_present
+    - type: max_tool_calls
+      value: 6
+    - type: max_repeated_calls
+      value: 3
+
+compare:
+  fail_on: [status, metric]
+
+cases:
+  - id: refund-eligible-order
+    input: I want a refund for order ORD-1001
+    checks:
+      - type: tool_sequence
+        sequence: [lookup_order, check_refund_eligibility, issue_refund]
+        exact: true
+      - type: tool_args
+        tool: issue_refund
+        args: {order_id: ORD-1001, amount: 129.0}
+      - type: tool_args_required
+        tool: issue_refund
+        keys: [order_id, amount]
+      - type: no_tool_errors
+      - type: stop_reason
+        value: final_answer
+      - type: contains
+        value: refund for ORD-1001 has been issued
+
+  - id: refund-outside-window
+    # Policy: the agent must check eligibility and must not refund.
+    input: Refund ORD-1002 please
+    checks:
+      - type: tool_sequence
+        sequence: [lookup_order, check_refund_eligibility]
+      - type: tool_not_called
+        tool: issue_refund
+      - type: contains
+        value: not eligible
+      - type: stop_reason
+        value: final_answer
+
+  - id: shipping-status
+    input: Where is ORD-1003?
+    checks:
+      - type: tool_called
+        tool: get_shipping_status
+        max_times: 1
+      - type: no_tool_errors
+      - type: contains
+        value: in transit
+
+  - id: shipping-transient-failure-retried
+    # The carrier API fails once. The agent must retry and still answer.
+    input: What's the shipping status of ORD-1004?
+    checks:
+      - type: tool_called
+        tool: get_shipping_status
+        min_times: 2
+        max_times: 3
+      - type: stop_reason
+        value: final_answer
+      - type: contains
+        value: in transit
+
+  - id: missing-order-number
+    input: Where is my package?
+    checks:
+      - type: max_tool_calls
+        name: no_tools
+        value: 0
+      - type: contains
+        value: order number
+
+  - id: unknown-order-not-refunded
+    # Silent-failure guard: an error must never turn into "refund issued".
+    input: Please refund ORD-9999
+    checks:
+      - type: tool_not_called
+        tool: issue_refund
+      - type: not_contains
+        value: has been issued
+      - type: contains
+        value: not found
+      - type: stop_reason
+        value: [final_answer, tool_error]

@@ -1,0 +1,94 @@
+# Verification suite for the reference RAG pipeline in pipeline.py.
+#
+#   vouqis run examples/rag/vouqis.yaml --save-baseline examples/rag/baseline.json
+#   vouqis run examples/rag/vouqis.yaml --baseline examples/rag/baseline.json -T top_k=1
+name: support-rag
+target:
+  callable: pipeline.py:answer
+  kwargs:
+    top_k: 3
+  timeout_s: 10
+
+defaults:
+  checks:
+    - type: answer_present
+    - type: max_latency_ms
+      value: 2000
+
+compare:
+  fail_on: [status, metric]
+  drift_threshold: 0.6
+
+cases:
+  - id: refund-window
+    input: How many days do customers have to request a refund?
+    checks:
+      - type: contains
+        value: 30 days
+      - type: retrieval_recall
+        expected_ids: [refund-policy]
+        k: 3
+      - type: retrieval_mrr
+        expected_ids: [refund-policy]
+        min: 1.0
+      - type: groundedness
+        min: 1.0
+
+  - id: international-shipping
+    input: How long does international shipping take?
+    checks:
+      - type: contains
+        value: 7 to 14 business days
+      - type: retrieval_recall
+        expected_ids: [shipping]
+      - type: groundedness
+        min: 1.0
+
+  - id: warranty-water-damage-and-replacement
+    # Needs two documents. A top_k or ranking regression drops one of them.
+    input: Does the warranty cover water damage, and how does a warranty replacement ship?
+    checks:
+      - type: contains
+        value: [water damage, express]
+      - type: retrieval_recall
+        expected_ids: [warranty, shipping]
+        k: 3
+      - type: groundedness
+        min: 1.0
+
+  - id: password-reset-expiry
+    input: When do password reset links expire?
+    checks:
+      - type: context_contains
+        value: 15 minutes
+      - type: contains
+        value: 15 minutes
+
+  - id: tenant-isolation-globex
+    # A Globex user must never see Acme's contract terms.
+    input:
+      question: What enterprise rate per seat does the contract include?
+      tenant: globex
+    checks:
+      - type: context_excludes_ids
+        ids: [acme-enterprise-pricing]
+      - type: not_contains
+        value: [41 dollars, Acme]
+
+  - id: tenant-access-acme
+    input:
+      question: What enterprise rate per seat does the contract include?
+      tenant: acme
+    checks:
+      - type: retrieval_recall
+        expected_ids: [acme-enterprise-pricing]
+      - type: contains
+        value: 41 dollars
+
+  - id: unanswerable-abstains
+    input: What is the CEO's favorite color?
+    checks:
+      - type: contains
+        value: don't know
+      - type: max_context_chars
+        value: 0

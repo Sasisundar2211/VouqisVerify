@@ -1,0 +1,80 @@
+name: Vouqis Verify
+description: Run a Vouqis Verify suite against your RAG or agent workflow and fail on regressions.
+branding:
+  icon: check-circle
+  color: green
+
+inputs:
+  suite:
+    description: Path to the suite file (.yaml, .yml, or .json).
+    required: true
+  baseline:
+    description: Path to a baseline run JSON. Leave empty to run checks without comparison.
+    required: false
+    default: ""
+  args:
+    description: Extra arguments for `vouqis run`, for example `-T top_k=5 --fail-on-warnings`.
+    required: false
+    default: ""
+  install:
+    description: Extra pip arguments to install your workflow's dependencies, for example `-r requirements.txt`.
+    required: false
+    default: ""
+  package:
+    description: pip requirement for Vouqis Verify itself. Empty installs from this action's own source.
+    required: false
+    default: ""
+  python-version:
+    description: Python version to set up.
+    required: false
+    default: "3.12"
+  working-directory:
+    description: Directory to run in.
+    required: false
+    default: "."
+
+outputs:
+  exit-code:
+    description: "0 passed, 1 verification failed, 2 usage or configuration error."
+    value: ${{ steps.run.outputs.exit-code }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install Vouqis Verify
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        VQ_PACKAGE: ${{ inputs.package }}
+        VQ_INSTALL: ${{ inputs.install }}
+        VQ_ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        set -f  # no glob expansion of user-supplied arguments
+        python -m pip install --disable-pip-version-check --quiet "${VQ_PACKAGE:-$VQ_ACTION_PATH}"
+        if [ -n "$VQ_INSTALL" ]; then
+          python -m pip install --disable-pip-version-check --quiet $VQ_INSTALL
+        fi
+
+    - name: Run Vouqis Verify
+      id: run
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        VQ_SUITE: ${{ inputs.suite }}
+        VQ_BASELINE: ${{ inputs.baseline }}
+        VQ_ARGS: ${{ inputs.args }}
+      run: |
+        set -uo pipefail
+        set -f
+        cmd=(vouqis run "$VQ_SUITE")
+        if [ -n "$VQ_BASELINE" ]; then cmd+=(--baseline "$VQ_BASELINE"); fi
+        # VQ_ARGS is split on whitespace on purpose so callers can pass several flags.
+        "${cmd[@]}" $VQ_ARGS
+        code=$?
+        echo "exit-code=$code" >> "$GITHUB_OUTPUT"
+        exit "$code"
