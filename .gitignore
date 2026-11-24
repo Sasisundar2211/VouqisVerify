@@ -27,7 +27,7 @@
 
 # local agent/tool state and scratch output — never ship to a public repo
 /.claude/
-/.claude-flow/
+.claude-flow/
 /.impeccable/
 /.pnpm-store/
 /.serena/
@@ -50,3 +50,20 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+/dist/
+/.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+/.memsearch/
+.swarm/
+# vouqis run artifacts produced locally (baselines you intend to commit are named explicitly)
+/.vouqis/
+/uv.lock

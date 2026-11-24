@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e ".[dev]"
+      - run: ruff check src tests examples
+      - run: ruff format --check src tests examples
+      - run: mypy
+
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        include:
+          - os: macos-latest
+            python: "3.12"
+          - os: windows-latest
+            python: "3.12"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -e . pytest
+      - run: python -m pytest
+
+  integrations:
+    # Runs the framework examples against the real libraries.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -e . pytest langchain-core
+      - run: python -m pytest tests/test_integrations.py -rs
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install build twine
+      - run: python -m build
+      - run: twine check dist/*
+      - name: Install the wheel in a clean venv and run the examples
+        run: |
+          python -m venv /tmp/clean
+          /tmp/clean/bin/pip install dist/*.whl
+          cp -r examples /tmp/examples
+          cd /tmp
+          /tmp/clean/bin/vouqis --version
+          /tmp/clean/bin/vouqis run examples/rag/vouqis.yaml
+          /tmp/clean/bin/vouqis run examples/agent/vouqis.yaml
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+  action:
+    # Exercises action.yml exactly as a consuming repository would.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Record a baseline
+        uses: ./
+        with:
+          suite: examples/agent/vouqis.yaml
+          args: --save-baseline agent-baseline.json
+      - name: Compare a regressed agent against it (must fail)
+        id: regressed
+        continue-on-error: true
+        uses: ./
+        with:
+          suite: examples/agent/vouqis.yaml
+          baseline: agent-baseline.json
+          args: -T swallow_tool_errors=true
+      - name: Assert the regression was caught
+        env:
+          OUTCOME: ${{ steps.regressed.outcome }}
+        run: test "$OUTCOME" = "failure"

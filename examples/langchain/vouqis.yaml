@@ -1,0 +1,16 @@
+# Requires: pip install langchain-core
+name: langchain-rag
+target:
+  callable: pipeline.py:answer
+cases:
+  - id: refund-window
+    input: How many days for a refund request?
+    checks:
+      - {type: contains, value: 30 days}
+      - {type: retrieval_recall, expected_ids: [refund-policy]}
+      - {type: groundedness, min: 1.0}
+  - id: shipping-time
+    input: How long does international shipping take?
+    checks:
+      - {type: contains, value: 7 to 14 business days}
+      - {type: retrieval_mrr, expected_ids: [shipping], min: 1.0}
