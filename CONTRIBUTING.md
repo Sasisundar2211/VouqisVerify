@@ -18,7 +18,7 @@ mypy
 pytest
 ```
 
-CI runs the same commands on Python 3.9 to 3.13, builds the package, installs the wheel in a clean environment, and runs the GitHub Action against the examples.
+CI runs the same commands on Python 3.10 to 3.14, builds the package, installs the wheel in a clean environment, and runs the GitHub Action against the examples.
 
 ## Guidelines
 

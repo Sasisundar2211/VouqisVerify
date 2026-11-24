@@ -112,3 +112,33 @@ def test_null_timeout_disables_the_limit(make_suite):
     suite = make_suite(suite_data(timeout_s=None), TARGET)
     assert suite.target.timeout_s is None
     assert run_suite(suite).passed
+
+
+SLOW = """
+import time
+
+def answer(q):
+    time.sleep(0.3)
+    return f"echo {q}"
+"""
+
+
+def test_workers_run_cases_concurrently_and_keep_order(make_suite):
+    ids = [f"c{i}" for i in range(6)]
+    data = {
+        "name": "par",
+        "target": "target_mod.py:answer",
+        "cases": [{"id": i, "input": i, "checks": [{"type": "contains", "value": f"echo {i}"}]} for i in ids],
+    }
+    suite = make_suite(data, SLOW)
+    seen = []
+    run = run_suite(suite, workers=6, progress=lambda c: seen.append(c.id))
+    assert run.passed
+    assert [c.id for c in run.cases] == ids  # suite order, not completion order
+    assert sorted(seen) == ids
+    assert run.duration_ms < 6 * 300 * 0.6  # well under the sequential 1800 ms
+
+
+def test_workers_must_be_positive(make_suite):
+    with pytest.raises(ConfigError, match="workers"):
+        run_suite(make_suite(suite_data(), TARGET), workers=0)

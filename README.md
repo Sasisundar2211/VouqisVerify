@@ -31,9 +31,11 @@ That run caught an agent that "succeeded" (no exception, `stop_reason: final_ans
 pip install git+https://github.com/Sasisundar2211/VouqisVerify
 ```
 
-After the first PyPI release this becomes `pip install vouqis-verify`. Python 3.9 or newer. One runtime dependency: PyYAML.
+After the first PyPI release this becomes `pip install vouqis-verify`. Python 3.10 or newer. One runtime dependency: PyYAML.
 
 ## Quick start
+
+`vouqis init --template rag` (or `--template agent`) writes a starter suite and target file. Or set them up by hand:
 
 1. Wrap your workflow in a function that takes one input and returns a dict:
 
@@ -121,6 +123,7 @@ The action writes a Markdown report to the job summary and fails the job on regr
 
 ## Documentation
 
+- [CLI reference](docs/cli.md)
 - [Configuration reference](docs/configuration.md)
 - [Check reference](docs/checks.md)
 - [Writing a target](docs/targets.md): output contract and wrapping LangChain, LlamaIndex, or custom agents
@@ -132,7 +135,7 @@ The action writes a Markdown report to the job summary and fails the job on regr
 
 - Vouqis Verify does not call an LLM. There is no model-graded evaluation. Semantic checks are lexical heuristics.
 - A timed-out target keeps running in a background thread until the process exits, because Python cannot kill threads.
-- Cases run one after another in a single process.
+- Cases run in one process. `--workers N` runs cases in parallel threads, which requires a thread-safe target.
 - LLM outputs vary between runs. Use `repeat` with `min_pass_rate`, assert on facts rather than exact wording, and treat drift findings as warnings unless your workflow is deterministic.
 
 ## Project

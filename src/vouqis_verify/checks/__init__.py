@@ -97,7 +97,7 @@ def check_names(checks: Sequence[Mapping[str, Any]]) -> List[str]:
 
 def run_checks(checks: Sequence[Mapping[str, Any]], output: Output, ctx: CheckContext) -> List[CheckResult]:
     results = []
-    for name, params in zip(check_names(checks), checks):
+    for name, params in zip(check_names(checks), checks, strict=True):
         spec = REGISTRY[params["type"]]
         try:
             result = spec.fn(params, output, ctx)

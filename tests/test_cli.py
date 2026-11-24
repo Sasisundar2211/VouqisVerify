@@ -122,3 +122,22 @@ def test_github_step_summary(tmp_path):
     summary.unlink()
     assert vouqis("run", AGENT, "-q", "--no-github-summary", env=env).returncode == 0
     assert not summary.exists()
+
+
+def test_init_scaffolds_valid_suites(tmp_path):
+    for kind in ("rag", "agent"):
+        target = tmp_path / kind
+        out = vouqis("init", str(target), "--template", kind)
+        assert out.returncode == 0, out.stderr
+        assert vouqis("validate", str(target / "vouqis.yaml")).returncode == 0
+        run = vouqis("run", str(target / "vouqis.yaml"), "-q")
+        assert run.returncode == 1 and "NotImplementedError" in run.stdout  # never a fake pass
+    again = vouqis("init", str(tmp_path / "rag"))
+    assert again.returncode == 2 and "Refusing to overwrite" in again.stderr
+    assert vouqis("init", str(tmp_path / "rag"), "--force").returncode == 0
+
+
+def test_workers_flag(tmp_path):
+    assert vouqis("run", AGENT, "-q", "-j", "4").returncode == 0
+    bad = vouqis("run", AGENT, "-q", "-j", "0")
+    assert bad.returncode == 2 and "workers" in bad.stderr

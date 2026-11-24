@@ -107,7 +107,7 @@ class TfidfIndex:
     def search(self, query: str, top_k: int, allowed_tenants: Any) -> List[Tuple[float, Dict[str, str]]]:
         q = self._embed_terms(_terms(query))
         scored = []
-        for vec, ch in zip(self.vectors, self.chunks):
+        for vec, ch in zip(self.vectors, self.chunks, strict=True):
             if allowed_tenants is not None and ch["tenant"] not in allowed_tenants:
                 continue
             score = sum(w * vec.get(t, 0.0) for t, w in q.items())

@@ -34,7 +34,9 @@ Append a tool call with `error` set whenever a tool fails, including failures yo
 
 ## Wrapping a framework
 
-Vouqis Verify has no framework-specific integration. Convert the framework's result into the dict above. The sketches below show the field mapping. They are untested against those libraries; check attribute names for your installed version.
+Vouqis Verify has no framework-specific code. Convert the framework's result into the dict above.
+
+The LangChain mapping below runs in CI against `langchain-core` (verified on 1.8.4) through [examples/langchain](../examples/langchain). The LlamaIndex and custom-loop sketches are untested; check attribute names for your installed version.
 
 LangChain retriever plus chain:
 

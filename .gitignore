@@ -66,3 +66,4 @@ htmlcov/
 .swarm/
 # vouqis run artifacts produced locally (baselines you intend to commit are named explicitly)
 /.vouqis/
+/uv.lock

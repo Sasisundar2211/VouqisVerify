@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
@@ -70,7 +71,12 @@ def run_suite(
     target_overrides: Optional[Dict[str, Any]] = None,
     case_ids: Optional[Iterable[str]] = None,
     progress: Optional[ProgressFn] = None,
+    workers: int = 1,
 ) -> RunResult:
+    """Run the suite. ``workers > 1`` runs cases concurrently in threads; the
+    target must then be thread-safe. Results keep suite order either way."""
+    if workers < 1:
+        raise ConfigError("workers must be >= 1.")
     kwargs = {**suite.target.kwargs, **(target_overrides or {})}
     cases = suite.cases
     if case_ids:
@@ -83,12 +89,20 @@ def run_suite(
     fn = load_callable(suite.target.callable, suite.base_dir)
     started = datetime.now(timezone.utc)
     t0 = time.perf_counter()
-    results = []
-    for case in cases:
+    lock = threading.Lock()
+
+    def one(case: CaseConfig) -> CaseResult:
         result = run_case(fn, case, kwargs, suite.target.timeout_s)
-        results.append(result)
         if progress:
-            progress(result)
+            with lock:
+                progress(result)
+        return result
+
+    if workers == 1:
+        results = [one(c) for c in cases]
+    else:
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="vouqis-case") as pool:
+            results = list(pool.map(one, cases))
     return RunResult(
         suite_name=suite.name,
         suite_fingerprint=suite.fingerprint(),

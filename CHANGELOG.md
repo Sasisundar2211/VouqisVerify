@@ -10,7 +10,7 @@ First release of the Python tool. Not yet published to PyPI.
 
 ### Added
 
-- `vouqis run`, `compare`, `validate`, and `checks` commands with exit codes 0 (passed), 1 (failed), 2 (usage error).
+- `vouqis run`, `compare`, `validate`, `init`, and `checks` commands with exit codes 0 (passed), 1 (failed), 2 (usage error).
 - YAML and JSON suites with strict validation of every key and check parameter.
 - 26 checks across answers, retrieval, grounding (heuristic), agent tool use, and execution.
 - Baseline comparison with status, metric, drift, latency, and coverage findings, configurable through `compare.fail_on`.
@@ -18,6 +18,9 @@ First release of the Python tool. Not yet published to PyPI.
 - Text, JSON, Markdown, and JUnit reports. Automatic GitHub job summary.
 - Composite GitHub Action (`action.yml`), CI workflow, and a tag-triggered PyPI release workflow using trusted publishing.
 - Offline reference RAG pipeline and tool-using agent in `examples/`, each with knobs that reproduce real regressions.
+- `vouqis init --template {rag,agent}` writes a starter suite and target. The target raises `NotImplementedError` until connected, so a scaffold never passes on canned output.
+- `vouqis run --workers N` (`-j N`) runs cases concurrently. Results keep suite order.
+- Supports Python 3.10 to 3.14. Python 3.9 is not supported: it reached end of life in October 2025 and GitHub's hosted runners no longer provide it.
 
 ### Changed
 

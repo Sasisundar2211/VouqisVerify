@@ -20,6 +20,7 @@ from .errors import VouqisError
 from .models import CaseResult, RunResult
 from .report import load_run, save_run, to_json, to_junit, to_markdown, to_text
 from .runner import run_suite
+from .scaffold import TEMPLATES, init_project
 from .target import load_callable
 
 EXIT_OK, EXIT_FAILED, EXIT_USAGE = 0, 1, 2
@@ -86,7 +87,13 @@ def cmd_run(args: argparse.Namespace) -> int:
         if args.format == "text" and not args.quiet:
             sys.stderr.write(f"  {'.' if case.passed else 'F'} {case.id}\n")
 
-    run = run_suite(suite, target_overrides=_parse_target_args(args.target_arg), case_ids=args.case, progress=progress)
+    run = run_suite(
+        suite,
+        target_overrides=_parse_target_args(args.target_arg),
+        case_ids=args.case,
+        progress=progress,
+        workers=args.workers,
+    )
     if args.output:
         save_run(run, args.output)
     if args.save_baseline:
@@ -112,6 +119,14 @@ def cmd_validate(args: argparse.Namespace) -> int:
     load_callable(suite.target.callable, suite.base_dir)
     n_checks = sum(len(c.checks) for c in suite.cases)
     print(f"OK: suite {suite.name!r}, {len(suite.cases)} case(s), {n_checks} check(s), target {suite.target.callable}")
+    return EXIT_OK
+
+
+def cmd_init(args: argparse.Namespace) -> int:
+    for path in init_project(Path(args.directory), args.template, force=args.force):
+        print(f"wrote {path}")
+    suite = Path(args.directory) / "vouqis.yaml"
+    print(f"Next: edit vouqis_target.py, then run `vouqis run {suite} --save-baseline vouqis-baseline.json`")
     return EXIT_OK
 
 
@@ -160,6 +175,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run.add_argument("--case", action="append", metavar="ID", help="run only this case (repeatable)")
     run.add_argument("-q", "--quiet", action="store_true", help="no per-case progress on stderr")
+    run.add_argument(
+        "-j",
+        "--workers",
+        type=int,
+        default=1,
+        metavar="N",
+        help="run N cases concurrently (target must be thread-safe; default 1)",
+    )
     _add_output_args(run)
     run.set_defaults(func=cmd_run)
 
@@ -180,6 +203,12 @@ def build_parser() -> argparse.ArgumentParser:
     val = sub.add_parser("validate", help="check a suite file and import its target without running it")
     val.add_argument("suite")
     val.set_defaults(func=cmd_validate)
+
+    ini = sub.add_parser("init", help="write a starter suite and target file")
+    ini.add_argument("directory", nargs="?", default=".", help="where to write (default: current directory)")
+    ini.add_argument("--template", choices=sorted(TEMPLATES), default="rag", help="starter type (default rag)")
+    ini.add_argument("--force", action="store_true", help="overwrite existing files")
+    ini.set_defaults(func=cmd_init)
 
     chk = sub.add_parser("checks", help="list available check types")
     chk.set_defaults(func=cmd_checks)
