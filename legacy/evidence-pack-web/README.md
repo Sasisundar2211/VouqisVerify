@@ -1,4 +1,4 @@
-> Archived. This Next.js app is the earlier Vouqis Verify "AI Change Evidence Pack" product. It is no longer maintained. The current product is the Python tool at the repository root.
+> Archived. This Next.js app is the earlier Vouqis Verify "AI Change Evidence Pack" product. It is no longer maintained. The current product is the Python tool at the repository root. Git deployments to Vercel are disabled in the root `vercel.json`; the last production deployment stays up until the Vercel project is removed.
 
 # Vouqis Verify (VouqisVerify)
 

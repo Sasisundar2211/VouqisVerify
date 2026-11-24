@@ -24,7 +24,7 @@ First release of the Python tool. Not yet published to PyPI.
 
 ### Changed
 
-- The repository now hosts the Python tool. The earlier Next.js "AI Change Evidence Pack" web app moved to `legacy/evidence-pack-web/` and is no longer maintained.
+- The repository now hosts the Python tool. The earlier Next.js "AI Change Evidence Pack" web app moved to `legacy/evidence-pack-web/` and is no longer maintained. Root `vercel.json` disables its Vercel Git deployments.
 
 ### Fixed
 
